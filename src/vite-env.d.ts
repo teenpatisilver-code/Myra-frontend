@@ -1,3 +1,10 @@
-# Supabase - get these from supabase.com → Settings → API
-VITE_SUPABASE_URL=https://pvlvcqdhdwpgmurkqywe.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_ozpI8ZGSyHoq7uKT2PrY-A_QO8lw9W6
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_SUPABASE_URL: string
+  readonly VITE_SUPABASE_ANON_KEY: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
