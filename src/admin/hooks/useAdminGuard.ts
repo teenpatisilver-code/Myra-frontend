@@ -8,7 +8,7 @@ export function useAdminGuard() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) {
-        window.location.href = '/login'
+        window.location.href = '/auth'
         return
       }
       const { data } = await supabase
