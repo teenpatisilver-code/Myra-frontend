@@ -8,20 +8,3 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Auth helpers
-export const signUp = (email: string, password: string, fullName: string) =>
-  supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName } }
-  })
-
-export const signIn = (email: string, password: string) =>
-  supabase.auth.signInWithPassword({ email, password })
-
-export const signOut = () => supabase.auth.signOut()
-
-export const getUser = () => supabase.auth.getUser()
-
-export const getSession = () => supabase.auth.getSession()
