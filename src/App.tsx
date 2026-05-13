@@ -9,6 +9,7 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const HomePage = lazy(() => import("@/pages/home"));
 const MenuPage = lazy(() => import("@/pages/menu"));
 const AuthPage = lazy(() => import("@/pages/auth"));
+const ProfilePage = lazy(() => import("@/pages/profile"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ function Router() {
         <Route path="/" component={HomePage} />
         <Route path="/menu" component={MenuPage} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/profile" component={ProfilePage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
