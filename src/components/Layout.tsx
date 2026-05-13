@@ -1,8 +1,8 @@
 import { useLocation, Link } from "wouter";
-import { Home, ShoppingBag, UtensilsCrossed, User, ShieldCheck } from "lucide-react";
+import { Home, ShoppingBag, UtensilsCrossed, User } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useAuth } from "@/context/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ interface LayoutProps {
 export default function Layout({ children, hideNav }: LayoutProps) {
   const [location] = useLocation();
   const { items } = useCartStore();
-  const { isAdmin } = useAuth();
+  useAuth(); // Just to check if user is authenticated
   const cartCount = items.reduce((s, i) => s + i.quantity, 0);
 
   const navItems = [
@@ -48,12 +48,6 @@ export default function Layout({ children, hideNav }: LayoutProps) {
                 )}
               </Link>
             ))}
-            {isAdmin && (
-              <Link href="/admin" className="text-sm font-medium text-secondary hover:text-secondary/80 transition-colors flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" />
-                Admin
-              </Link>
-            )}
           </nav>
           <div className="md:hidden relative">
             <Link href="/cart">
