@@ -15,14 +15,17 @@ const OrderDetailPage = lazy(() => import("@/pages/order-detail"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const RewardsPage = lazy(() => import("@/pages/rewards"));
 const AuthPage = lazy(() => import("@/pages/auth"));
-const AdminDashboardPage = lazy(() => import("@/pages/admin/dashboard"));
-const AdminOrdersPage = lazy(() => import("@/pages/admin/orders"));
-const AdminMenuPage = lazy(() => import("@/pages/admin/menu"));
-const AdminInventoryPage = lazy(() => import("@/pages/admin/inventory"));
-const AdminExpensesPage = lazy(() => import("@/pages/admin/expenses"));
-const AdminBannersPage = lazy(() => import("@/pages/admin/banners"));
-const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
-const AdminPosPage = lazy(() => import("@/pages/admin/pos"));
+const AdminLoginPage = lazy(() => import("@/pages/admin-login"));
+
+// Admin pages commented out - will fix after customer flow works
+// const AdminDashboardPage = lazy(() => import("@/pages/admin/dashboard"));
+// const AdminOrdersPage = lazy(() => import("@/pages/admin/orders"));
+// const AdminMenuPage = lazy(() => import("@/pages/admin/menu"));
+// const AdminInventoryPage = lazy(() => import("@/pages/admin/inventory"));
+// const AdminExpensesPage = lazy(() => import("@/pages/admin/expenses"));
+// const AdminBannersPage = lazy(() => import("@/pages/admin/banners"));
+// const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
+// const AdminPosPage = lazy(() => import("@/pages/admin/pos"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,14 +58,18 @@ function Router() {
         <Route path="/profile" component={ProfilePage} />
         <Route path="/rewards" component={RewardsPage} />
         <Route path="/auth" component={AuthPage} />
-        <Route path="/admin" component={AdminDashboardPage} />
-        <Route path="/admin/orders" component={AdminOrdersPage} />
-        <Route path="/admin/menu" component={AdminMenuPage} />
-        <Route path="/admin/inventory" component={AdminInventoryPage} />
-        <Route path="/admin/expenses" component={AdminExpensesPage} />
-        <Route path="/admin/banners" component={AdminBannersPage} />
-        <Route path="/admin/settings" component={AdminSettingsPage} />
-        <Route path="/admin/pos" component={AdminPosPage} />
+        <Route path="/admin-login" component={AdminLoginPage} />
+        
+        {/* Admin routes commented out - will uncomment after customer pages work */}
+        {/* <Route path="/admin" component={AdminDashboardPage} /> */}
+        {/* <Route path="/admin/orders" component={AdminOrdersPage} /> */}
+        {/* <Route path="/admin/menu" component={AdminMenuPage} /> */}
+        {/* <Route path="/admin/inventory" component={AdminInventoryPage} /> */}
+        {/* <Route path="/admin/expenses" component={AdminExpensesPage} /> */}
+        {/* <Route path="/admin/banners" component={AdminBannersPage} /> */}
+        {/* <Route path="/admin/settings" component={AdminSettingsPage} /> */}
+        {/* <Route path="/admin/pos" component={AdminPosPage} /> */}
+        
         <Route component={NotFound} />
       </Switch>
     </Suspense>
