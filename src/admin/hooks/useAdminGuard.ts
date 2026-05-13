@@ -13,11 +13,11 @@ export function useAdminGuard() {
       }
       const { data } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('role')
         .eq('id', user.id)
         .single()
 
-      if (!data?.is_admin) {
+      if (data?.role !== 'admin') {
         window.location.href = '/'
         return
       }
