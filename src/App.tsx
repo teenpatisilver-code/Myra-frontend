@@ -15,7 +15,7 @@ const OrderDetailPage = lazy(() => import("@/pages/order-detail"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const RewardsPage = lazy(() => import("@/pages/rewards"));
 const AuthPage = lazy(() => import("@/pages/auth"));
-const AdminLoginPage = lazy(() => import("@/pages/admin/admin-login"));
+const AdminLoginPage = lazy(() => import("@/pages/admin-login"));
 
 // Admin pages commented out - will fix after customer flow works
 // const AdminDashboardPage = lazy(() => import("@/pages/admin/dashboard"));
