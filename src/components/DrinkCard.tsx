@@ -18,8 +18,10 @@ export default function DrinkCard({ drink }: DrinkCardProps) {
   const [imgError, setImgError] = useState(false);
 
   const discountedPrice = (() => {
-    if (drink.discountFixed != null && drink.discountFixed > 0) return Math.max(0, drink.price - drink.discountFixed);
-    if (drink.discountPercent != null && drink.discountPercent > 0) return drink.price * (1 - drink.discountPercent / 100);
+    if (drink.discountFixed != null && drink.discountFixed > 0)
+      return Math.max(0, drink.price - drink.discountFixed);
+    if (drink.discountPercent != null && drink.discountPercent > 0)
+      return drink.price * (1 - drink.discountPercent / 100);
     return drink.price;
   })();
   const hasDiscount = discountedPrice < drink.price;
@@ -39,17 +41,11 @@ export default function DrinkCard({ drink }: DrinkCardProps) {
       toppings: null,
       notes: null,
     });
-    toast({
-      title: "Added to cart",
-      description: drink.name,
-    });
+    toast({ title: "Added to cart", description: drink.name });
   };
 
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-    >
+    <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
       <Link href={`/menu/${drink.id}`}>
         <div className="glass-card rounded-xl overflow-hidden border border-border hover:border-primary/30 transition-all duration-300 group cursor-pointer h-full flex flex-col">
           <div className="relative aspect-square bg-muted overflow-hidden">
@@ -80,9 +76,13 @@ export default function DrinkCard({ drink }: DrinkCardProps) {
           </div>
           <div className="p-3 flex flex-col flex-1 gap-2">
             {drink.categoryName && (
-              <span className="text-xs text-secondary font-medium uppercase tracking-wider">{drink.categoryName}</span>
+              <span className="text-xs text-secondary font-medium uppercase tracking-wider">
+                {drink.categoryName}
+              </span>
             )}
-            <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-2">{drink.name}</h3>
+            <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-2">
+              {drink.name}
+            </h3>
             {(drink.calories != null || drink.protein != null) && (
               <div className="flex items-center gap-3">
                 {drink.calories != null && (
@@ -101,4 +101,27 @@ export default function DrinkCard({ drink }: DrinkCardProps) {
             )}
             <div className="mt-auto flex items-center justify-between pt-1">
               <div>
-                <span​​​​​​​​​​​​​​​​
+                <span className="font-bold text-foreground text-base">
+                  Rs {Math.round(discountedPrice)}
+                </span>
+                {hasDiscount && (
+                  <span className="text-xs text-muted-foreground line-through ml-1">
+                    Rs {Math.round(drink.price)}
+                  </span>
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={handleAddToCart}
+                disabled={!drink.isAvailable}
+                className="h-7 w-7 p-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
