@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         loading,
         isAuthenticated: !!user,
+        logout,
       }}
     >
       {children}
