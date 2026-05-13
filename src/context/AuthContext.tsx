@@ -7,6 +7,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   logout: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,13 +17,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -36,6 +35,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
+  const loginWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -43,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         isAuthenticated: !!user,
         logout,
+        loginWithGoogle,
       }}
     >
       {children}
