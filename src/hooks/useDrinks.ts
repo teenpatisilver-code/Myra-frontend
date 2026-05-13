@@ -20,4 +20,4 @@ export function useDrinks(categoryId?: string) {
   }, [categoryId])
 
   return { drinks, loading }
-}
+} 
