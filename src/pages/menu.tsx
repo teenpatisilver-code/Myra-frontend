@@ -20,7 +20,9 @@ export default function MenuPage() {
   const { data: drinks, isLoading: drinksLoading } = useMenuItems();
 
   const filtered = drinks?.filter((d) => {
-    const matchesCategory = selectedCategory ? d.category_id === selectedCategory : true;
+    const matchesCategory = selectedCategory
+      ? d.categoryName === categories?.find(c => c.id === selectedCategory)?.name
+      : true;
     const matchesSearch = searchQuery
       ? d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -85,7 +87,9 @@ export default function MenuPage() {
 
         {drinksLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-60 rounded-xl" />)}
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-60 rounded-xl" />
+            ))}
           </div>
         ) : filtered?.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
@@ -96,7 +100,12 @@ export default function MenuPage() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {filtered?.map((drink, i) => (
-              <motion.div key={drink.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+              <motion.div
+                key={drink.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+              >
                 <DrinkCard drink={drink} />
               </motion.div>
             ))}
