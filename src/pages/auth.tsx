@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Layout from "@/components/Layout";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useRegisterUser, useLoginUser } from "@/api";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
-  const { login } = useAuth();
+  const { signUp, signIn, loading, error } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -25,51 +25,49 @@ export default function AuthPage() {
     referralCode: "",
   });
 
-  const loginMutation = useLoginUser();
-  const registerMutation = useRegisterUser();
-
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const handleLogin = () => {
-    loginMutation.mutate(
-      { data: { email: form.email, password: form.password } },
-      {
-        onSuccess: (res) => {
-          login(res.user);
-          toast({ title: `Welcome back, ${res.user.name}!` });
-          setLocation("/");
-        },
-        onError: () => {
-          toast({ title: "Login failed", description: "Invalid email or password.", variant: "destructive" });
-        },
-      }
-    );
+  const handleLogin = async () => {
+    if (!form.email || !form.password) {
+      toast({ title: "Error", description: "Email and password required", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await signIn(form.email, form.password);
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast({ title: `Welcome back!` });
+      setLocation("/");
+    } else {
+      toast({ title: "Login failed", description: result.error || "Invalid email or password", variant: "destructive" });
+    }
   };
 
-  const handleRegister = () => {
-    registerMutation.mutate(
-      {
-        data: {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          phone: form.phone || null,
-          referralCode: form.referralCode || null,
-        },
-      },
-      {
-        onSuccess: (user) => {
-          login(user);
-          toast({ title: `Welcome, ${user.name}!`, description: "Your account has been created." });
-          setLocation("/");
-        },
-        onError: (err: unknown) => {
-          const msg = err && typeof err === "object" && "data" in err ? String((err as { data: { error?: string } }).data?.error) : "Registration failed.";
-          toast({ title: "Registration failed", description: msg, variant: "destructive" });
-        },
-      }
-    );
+  const handleRegister = async () => {
+    if (!form.name || !form.email || !form.password) {
+      toast({ title: "Error", description: "Name, email and password required", variant: "destructive" });
+      return;
+    }
+
+    if (form.password.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await signUp(form.email, form.password, form.name);
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast({ title: "Account created!", description: "Please check your email to confirm your account" });
+      setForm({ name: "", email: "", password: "", phone: "", referralCode: "" });
+      setMode("login");
+    } else {
+      toast({ title: "Registration failed", description: result.error || "Please try again", variant: "destructive" });
+    }
   };
 
   const handleGuestCheckout = () => {
@@ -109,6 +107,12 @@ export default function AuthPage() {
 
           {/* Form */}
           <div className="glass-card border border-border rounded-2xl p-5 space-y-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                {error}
+              </div>
+            )}
+
             {mode === "register" && (
               <div>
                 <Label className="text-xs text-muted-foreground">Full Name</Label>
@@ -151,11 +155,11 @@ export default function AuthPage() {
 
             <Button
               onClick={mode === "login" ? handleLogin : handleRegister}
-              disabled={loginMutation.isPending || registerMutation.isPending}
+              disabled={isSubmitting || loading}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
               data-testid="button-auth-submit"
             >
-              {loginMutation.isPending || registerMutation.isPending
+              {isSubmitting || loading
                 ? "Please wait..."
                 : mode === "login" ? "Sign In" : "Create Account"}
             </Button>
