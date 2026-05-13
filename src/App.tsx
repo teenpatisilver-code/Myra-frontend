@@ -9,7 +9,6 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const HomePage = lazy(() => import("@/pages/home"));
 const MenuPage = lazy(() => import("@/pages/menu"));
 const AuthPage = lazy(() => import("@/pages/auth"));
-const AdminLoginPage = lazy(() => import("@/pages/admin-login"));
 
 // Pages that need API updates - disabled for now
 // const DrinkDetailPage = lazy(() => import("@/pages/drink-detail"));
@@ -44,8 +43,7 @@ function Router() {
         <Route path="/" component={HomePage} />
         <Route path="/menu" component={MenuPage} />
         <Route path="/auth" component={AuthPage} />
-        <Route path="/admin-login" component={AdminLoginPage} />
-        
+
         {/* Disabled pages - will enable after API migration */}
         {/* <Route path="/menu/:id" component={DrinkDetailPage} /> */}
         {/* <Route path="/cart" component={CartPage} /> */}
