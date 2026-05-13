@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useDrinks(categoryId?: string) {
-  const [drinks, setDrinks] = useState([])
+  const [drinks, setDrinks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
