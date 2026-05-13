@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { User, Phone, Mail, MapPin, LogOut, Star, ShoppingBag, Settings, ChevronRight } from "lucide-react";
+import { User, Phone, Mail, MapPin, LogOut, Star, ShoppingBag, Settings, ChevronRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -75,6 +75,21 @@ export default function ProfilePage() {
 
         {/* Menu Items */}
         <div className="glass-card rounded-2xl border border-border overflow-hidden">
+
+          {/* Admin Dashboard - only visible to admin */}
+          {isAdmin && (
+            <button
+              onClick={() => setLocation("/admin")}
+              className="w-full flex items-center justify-between p-4 hover:bg-primary/10 transition-colors border-b border-border bg-primary/5"
+            >
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-primary" />
+                <span className="font-medium text-primary">Admin Dashboard</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-primary" />
+            </button>
+          )}
+
           <button
             onClick={() => setLocation("/orders")}
             className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors border-b border-border"
