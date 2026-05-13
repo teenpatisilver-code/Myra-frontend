@@ -1,4 +1,4 @@
-import { Switch, Route } from 'wouter'
+import { Switch, Route, useLocation } from 'wouter'
 import AdminLayout from './AdminLayout'
 import { useAdminGuard } from './hooks/useAdminGuard'
 import Dashboard from './pages/Dashboard'
@@ -21,11 +21,11 @@ export default function AdminApp() {
   return (
     <AdminLayout>
       <Switch>
-        <Route path="/admin" component={Dashboard} />
         <Route path="/admin/orders" component={Orders} />
         <Route path="/admin/drinks" component={Drinks} />
         <Route path="/admin/categories" component={Categories} />
         <Route path="/admin/customers" component={Customers} />
+        <Route path="/admin" component={Dashboard} />
       </Switch>
     </AdminLayout>
   )
