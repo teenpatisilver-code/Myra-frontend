@@ -44,6 +44,7 @@ function Router() {
         <Route path="/orders" component={OrdersPage} />
         <Route path="/rewards" component={RewardsPage} />
         <Route path="/cart" component={CartPage} />
+        <Route path="/admin" component={AdminApp} />
         <Route path="/admin/:rest*" component={AdminApp} />
         <Route component={NotFound} />
       </Switch>
