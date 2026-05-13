@@ -1,52 +1,47 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/api';
+import { supabase } from '@/lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  user: User | null;
-  login: (user: User) => void;
-  logout: () => void;
+  user: SupabaseUser | null;
+  loading: boolean;
   isAuthenticated: boolean;
-  isAdmin: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('myraUser');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Failed to parse user', e);
-      }
-    }
-    setIsLoaded(true);
+    // Check if user is already logged in
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription?.unsubscribe();
   }, []);
 
-  const login = (newUser: User) => {
-    setUser(newUser);
-    localStorage.setItem('myraUser', JSON.stringify(newUser));
-  };
-
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('myraUser');
   };
-
-  if (!isLoaded) return null;
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        login,
-        logout,
+        loading,
         isAuthenticated: !!user,
-        isAdmin: user?.role === 'admin',
       }}
     >
       {children}
