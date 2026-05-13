@@ -9,14 +9,12 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const HomePage = lazy(() => import("@/pages/home"));
 const MenuPage = lazy(() => import("@/pages/menu"));
 const AuthPage = lazy(() => import("@/pages/auth"));
-
-// Pages that need API updates - disabled for now
-// const DrinkDetailPage = lazy(() => import("@/pages/drink-detail"));
-// const CartPage = lazy(() => import("@/pages/cart"));
-// const OrdersPage = lazy(() => import("@/pages/orders"));
-// const OrderDetailPage = lazy(() => import("@/pages/order-detail"));
-// const ProfilePage = lazy(() => import("@/pages/profile"));
-// const RewardsPage = lazy(() => import("@/pages/rewards"));
+const DrinkDetailPage = lazy(() => import("@/pages/drink-detail"));
+const CartPage = lazy(() => import("@/pages/cart"));
+const OrdersPage = lazy(() => import("@/pages/orders"));
+const OrderDetailPage = lazy(() => import("@/pages/order-detail"));
+const ProfilePage = lazy(() => import("@/pages/profile"));
+const RewardsPage = lazy(() => import("@/pages/rewards"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,16 +40,13 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/menu" component={MenuPage} />
+        <Route path="/menu/:id" component={DrinkDetailPage} />
         <Route path="/auth" component={AuthPage} />
-
-        {/* Disabled pages - will enable after API migration */}
-        {/* <Route path="/menu/:id" component={DrinkDetailPage} /> */}
-        {/* <Route path="/cart" component={CartPage} /> */}
-        {/* <Route path="/orders" component={OrdersPage} /> */}
-        {/* <Route path="/orders/:id" component={OrderDetailPage} /> */}
-        {/* <Route path="/profile" component={ProfilePage} /> */}
-        {/* <Route path="/rewards" component={RewardsPage} /> */}
-        
+        <Route path="/cart" component={CartPage} />
+        <Route path="/orders" component={OrdersPage} />
+        <Route path="/orders/:id" component={OrderDetailPage} />
+        <Route path="/profile" component={ProfilePage} />
+        <Route path="/rewards" component={RewardsPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
