@@ -1,137 +1,104 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { useState } from "react";
+import { Link } from "wouter";
+import { Plus, Zap, Flame } from "lucide-react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useCartStore } from "@/store/cartStore";
+import { useToast } from "@/hooks/use-toast";
+import type { MenuItem } from "@/hooks/useMenuData";
 
-export interface Category {
-  id: string
-  name: string
-  slug: string
-  icon?: string | null
-  image_url?: string | null
+interface DrinkCardProps {
+  drink: MenuItem;
 }
 
-export interface MenuItem {
-  id: number
-  name: string
-  description?: string | null
-  imageUrl?: string | null
-  price: number
-  discountPercent?: number | null
-  discountFixed?: number | null
-  calories?: number | null
-  protein?: number | null
-  categoryName?: string | null
-  isAvailable: boolean
-  is_featured: boolean
-  created_at: string
-}
+export default function DrinkCard({ drink }: DrinkCardProps) {
+  const { addItem } = useCartStore();
+  const { toast } = useToast();
+  const [imgError, setImgError] = useState(false);
 
-export const useCategories = () => {
-  const [data, setData] = useState<Category[] | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const discountedPrice = (() => {
+    if (drink.discountFixed != null && drink.discountFixed > 0) return Math.max(0, drink.price - drink.discountFixed);
+    if (drink.discountPercent != null && drink.discountPercent > 0) return drink.price * (1 - drink.discountPercent / 100);
+    return drink.price;
+  })();
+  const hasDiscount = discountedPrice < drink.price;
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const { data: categories, error } = await supabase
-          .from('categories')
-          .select('*')
-          .order('sort_order', { ascending: true })
-        if (error) throw error
-        setData(categories)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load categories')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchCategories()
-  }, [])
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!drink.isAvailable) return;
+    addItem({
+      drinkId: drink.id,
+      drinkName: drink.name,
+      drinkImageUrl: drink.imageUrl ?? null,
+      price: discountedPrice,
+      quantity: 1,
+      sugarLevel: null,
+      iceLevel: null,
+      toppings: null,
+      notes: null,
+    });
+    toast({
+      title: "Added to cart",
+      description: drink.name,
+    });
+  };
 
-  return { data, isLoading, error }
-}
-
-export const useMenuItems = () => {
-  const [data, setData] = useState<MenuItem[] | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchMenuItems = async () => {
-      try {
-        const { data: items, error } = await supabase
-          .from('drinks')
-          .select('*, categories(name)')
-          .eq('is_available', true)
-          .order('sort_order', { ascending: true })
-        if (error) throw error
-        const mapped = items?.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          imageUrl: item.image_url,
-          price: Number(item.price),
-          discountPercent: item.discount_percent ? Number(item.discount_percent) : null,
-          discountFixed: item.discount_fixed ? Number(item.discount_fixed) : null,
-          calories: item.calories,
-          protein: item.protein ? Number(item.protein) : null,
-          categoryName: item.categories?.name ?? null,
-          isAvailable: item.is_available,
-          is_featured: item.is_featured,
-          created_at: item.created_at,
-        }))
-        setData(mapped ?? [])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load menu items')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchMenuItems()
-  }, [])
-
-  return { data, isLoading, error }
-}
-
-export const useFeaturedMenuItems = () => {
-  const [data, setData] = useState<MenuItem[] | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchFeaturedItems = async () => {
-      try {
-        const { data: items, error } = await supabase
-          .from('drinks')
-          .select('*, categories(name)')
-          .eq('is_featured', true)
-          .eq('is_available', true)
-          .order('sort_order', { ascending: true })
-        if (error) throw error
-        const mapped = items?.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          imageUrl: item.image_url,
-          price: Number(item.price),
-          discountPercent: item.discount_percent ? Number(item.discount_percent) : null,
-          discountFixed: item.discount_fixed ? Number(item.discount_fixed) : null,
-          calories: item.calories,
-          protein: item.protein ? Number(item.protein) : null,
-          categoryName: item.categories?.name ?? null,
-          isAvailable: item.is_available,
-          is_featured: item.is_featured,
-          created_at: item.created_at,
-        }))
-        setData(mapped ?? [])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load featured items')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchFeaturedItems()
-  }, [])
-
-  return { data, isLoading, error }
-}
+  return (
+    <motion.div
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    >
+      <Link href={`/menu/${drink.id}`}>
+        <div className="glass-card rounded-xl overflow-hidden border border-border hover:border-primary/30 transition-all duration-300 group cursor-pointer h-full flex flex-col">
+          <div className="relative aspect-square bg-muted overflow-hidden">
+            {drink.imageUrl && !imgError ? (
+              <img
+                src={drink.imageUrl}
+                alt={drink.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                <Zap className="w-12 h-12 text-primary/30" />
+              </div>
+            )}
+            {hasDiscount && (
+              <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground font-bold text-xs">
+                {drink.discountFixed != null && drink.discountFixed > 0
+                  ? `-Rs ${Math.round(drink.discountFixed)}`
+                  : `-${Math.round(drink.discountPercent ?? 0)}%`}
+              </Badge>
+            )}
+            {!drink.isAvailable && (
+              <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                <span className="text-muted-foreground font-medium text-sm">Unavailable</span>
+              </div>
+            )}
+          </div>
+          <div className="p-3 flex flex-col flex-1 gap-2">
+            {drink.categoryName && (
+              <span className="text-xs text-secondary font-medium uppercase tracking-wider">{drink.categoryName}</span>
+            )}
+            <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-2">{drink.name}</h3>
+            {(drink.calories != null || drink.protein != null) && (
+              <div className="flex items-center gap-3">
+                {drink.calories != null && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Flame className="w-3 h-3 text-orange-500" />
+                    {drink.calories} kcal
+                  </span>
+                )}
+                {drink.protein != null && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Zap className="w-3 h-3 text-primary" />
+                    {drink.protein}g protein
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="mt-auto flex items-center justify-between pt-1">
+              <div>
+                <span​​​​​​​​​​​​​​​​
