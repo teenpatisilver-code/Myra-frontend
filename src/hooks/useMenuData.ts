@@ -10,7 +10,7 @@ export interface Category {
 }
 
 export interface MenuItem {
-  id: number
+  id: string          // ✅ was: number
   name: string
   description?: string | null
   imageUrl?: string | null
@@ -66,7 +66,7 @@ export const useMenuItems = () => {
           .order('sort_order', { ascending: true })
         if (error) throw error
         const mapped = (items ?? []).map((item: any) => ({
-          id: item.id,
+          id: String(item.id),  // ✅ was: item.id
           name: item.name,
           description: item.description,
           imageUrl: item.image_url,
@@ -109,7 +109,7 @@ export const useFeaturedMenuItems = () => {
           .order('sort_order', { ascending: true })
         if (error) throw error
         const mapped = (items ?? []).map((item: any) => ({
-          id: item.id,
+          id: String(item.id),  // ✅ was: item.id
           name: item.name,
           description: item.description,
           imageUrl: item.image_url,
