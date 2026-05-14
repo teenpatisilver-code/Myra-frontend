@@ -26,32 +26,26 @@ export default function CartPage() {
         notes: items.map(i => `${i.drinkName} x${i.quantity}`).join(', ')
       }).select().single();
 
-      if (error) throw error;
+      if (error) throw new Error('Order failed: ' + error.message);
 
-      await supabase.from('order_items').insert(
+      const { error: itemsError } = await supabase.from('order_items').insert(
         items.map(i => ({
           order_id: order.id,
-          drink_id: i.drinkId,
+          menu_item_id: i.drinkId,
           drink_name: i.drinkName,
-          price: i.price,
-          quantity: i.quantity
+          unit_price: i.price,
+          quantity: i.quantity,
+          subtotal: i.price * i.quantity
         }))
       );
 
-      try {
-        await supabase.rpc('increment_loyalty_points', {
-          user_id: user!.id,
-          points: 10
-        });
-      } catch {
-        // loyalty points are optional, ignore errors
-      }
+      if (itemsError) throw new Error('Order items failed: ' + itemsError.message);
 
       clearCart();
-      toast({ title: "Order placed!", description: "Your order is being prepared." });
+      toast({ title: "Order placed! 🎉", description: "Your order is being prepared." });
       setLocation('/orders');
-    } catch {
-      toast({ title: "Error", description: "Failed to place order. Try again.", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to place order.", variant: "destructive" });
     }
     setPlacing(false);
   };
