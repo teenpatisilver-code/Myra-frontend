@@ -35,7 +35,6 @@ export default function CartPage() {
           drink_name: i.drinkName,
           unit_price: i.price,
           quantity: i.quantity,
-          subtotal: i.price * i.quantity
         }))
       );
 
