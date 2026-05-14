@@ -18,23 +18,39 @@ export default function CartPage() {
   const placeOrder = async () => {
     if (!isAuthenticated) { setLocation('/auth'); return; }
     setPlacing(true);
-    const { data: order, error } = await supabase.from('orders').insert({
-      user_id: user!.id,
-      total_amount: getTotal(),
-      status: 'pending',
-      notes: items.map(i => `${i.drinkName} x${i.quantity}`).join(', ')
-    }).select().single();
+    try {
+      const { data: order, error } = await supabase.from('orders').insert({
+        user_id: user!.id,
+        total_amount: getTotal(),
+        status: 'pending',
+        notes: items.map(i => `${i.drinkName} x${i.quantity}`).join(', ')
+      }).select().single();
 
-    if (!error && order) {
+      if (error) throw error;
+
       await supabase.from('order_items').insert(
-        items.map(i => ({ order_id: order.id, drink_id: i.drinkId, drink_name: i.drinkName, price: i.price, quantity: i.quantity }))
+        items.map(i => ({
+          order_id: order.id,
+          drink_id: i.drinkId,
+          drink_name: i.drinkName,
+          price: i.price,
+          quantity: i.quantity
+        }))
       );
-      // Add loyalty points
-      await supabase.rpc('increment_loyalty_points', { user_id: user!.id, points: 10 }).catch(() => {});
+
+      try {
+        await supabase.rpc('increment_loyalty_points', {
+          user_id: user!.id,
+          points: 10
+        });
+      } catch {
+        // loyalty points are optional, ignore errors
+      }
+
       clearCart();
       toast({ title: "Order placed!", description: "Your order is being prepared." });
       setLocation('/orders');
-    } else {
+    } catch {
       toast({ title: "Error", description: "Failed to place order. Try again.", variant: "destructive" });
     }
     setPlacing(false);
@@ -47,7 +63,9 @@ export default function CartPage() {
           <ShoppingBag className="w-16 h-16 mx-auto text-muted-foreground opacity-30" />
           <h2 className="text-xl font-bold text-foreground">Your cart is empty</h2>
           <p className="text-muted-foreground">Add some drinks to get started</p>
-          <Button onClick={() => setLocation('/menu')} className="bg-primary text-primary-foreground">Browse Menu</Button>
+          <Button onClick={() => setLocation('/menu')} className="bg-primary text-primary-foreground">
+            Browse Menu
+          </Button>
         </div>
       </Layout>
     );
@@ -60,22 +78,28 @@ export default function CartPage() {
         <div className="space-y-3">
           {items.map(item => (
             <div key={item.id} className="glass-card rounded-xl p-4 border border-border flex items-center gap-3">
-              {item.drinkImageUrl && <img src={item.drinkImageUrl} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />}
+              {item.drinkImageUrl && (
+                <img src={item.drinkImageUrl} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+              )}
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-foreground text-sm truncate">{item.drinkName}</h3>
                 <p className="text-primary font-bold">Rs {Math.round(item.price)}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => item.quantity > 1 ? updateQuantity(item.id, item.quantity - 1) : removeItem(item.id)}
+                <button
+                  onClick={() => item.quantity > 1 ? updateQuantity(item.id, item.quantity - 1) : removeItem(item.id)}
                   className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-primary/20">
                   <Minus className="w-3 h-3" />
                 </button>
                 <span className="w-5 text-center font-semibold text-sm">{item.quantity}</span>
-                <button onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
                   className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-primary/20">
                   <Plus className="w-3 h-3" />
                 </button>
-                <button onClick={() => removeItem(item.id)} className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 ml-1">
+                <button
+                  onClick={() => removeItem(item.id)}
+                  className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 ml-1">
                   <Trash2 className="w-3 h-3 text-red-400" />
                 </button>
               </div>
@@ -91,7 +115,10 @@ export default function CartPage() {
             <span>Total</span>
             <span className="text-primary">Rs {Math.round(getTotal())}</span>
           </div>
-          <Button onClick={placeOrder} disabled={placing} className="w-full bg-primary text-primary-foreground h-12 text-base font-semibold">
+          <Button
+            onClick={placeOrder}
+            disabled={placing}
+            className="w-full bg-primary text-primary-foreground h-12 text-base font-semibold">
             {placing ? 'Placing Order...' : `Place Order • Rs ${Math.round(getTotal())}`}
           </Button>
           <p className="text-xs text-center text-muted-foreground">+10 loyalty points with this order</p>
