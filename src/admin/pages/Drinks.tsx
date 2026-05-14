@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Plus, Pencil, Trash2, Sparkles, Upload, X } from 'lucide-react'
 
-const empty = { name: '', description: '', price: '', category_id: '', is_available: true, image_url: '', ingredients: '', allergens: '', benefits: '', is_featured: false }
+const empty = { name: '', description: '', price: '', category_id: '', is_available: true, image_url: '', is_featured: false, calories: '', protein: '' }
 
 export default function Drinks() {
   const [drinks, setDrinks] = useState<any[]>([])
@@ -15,7 +15,7 @@ export default function Drinks() {
 
   const fetchData = async () => {
     const [d, c] = await Promise.all([
-      supabase.from('menu_items').select('*, categories(name)').order('name'),
+      supabase.from('drinks').select('*, categories(name)').order('name'),
       supabase.from('categories').select('*').order('name'),
     ])
     setDrinks(d.data || [])
@@ -26,11 +26,21 @@ export default function Drinks() {
 
   const save = async () => {
     if (!form.name || !form.price) return
-    const payload = { ...form, price: parseFloat(form.price as string) }
+    const payload = {
+      name: form.name,
+      description: form.description,
+      price: parseFloat(form.price as string),
+      category_id: form.category_id ? parseInt(form.category_id) : null,
+      is_available: form.is_available,
+      is_featured: form.is_featured,
+      image_url: form.image_url,
+      calories: form.calories ? parseInt(form.calories) : null,
+      protein: form.protein ? parseFloat(form.protein) : null,
+    }
     if (editing) {
-      await supabase.from('menu_items').update(payload).eq('id', editing)
+      await supabase.from('drinks').update(payload).eq('id', editing)
     } else {
-      await supabase.from('menu_items').insert(payload)
+      await supabase.from('drinks').insert(payload)
     }
     setForm(empty); setEditing(null); setShowForm(false)
     fetchData()
@@ -38,12 +48,12 @@ export default function Drinks() {
 
   const del = async (id: string) => {
     if (!confirm('Delete this drink?')) return
-    await supabase.from('menu_items').delete().eq('id', id)
+    await supabase.from('drinks').delete().eq('id', id)
     fetchData()
   }
 
   const edit = (drink: any) => {
-    setForm({ ...drink, price: drink.price.toString() })
+    setForm({ ...drink, price: drink.price.toString(), calories: drink.calories?.toString() || '', protein: drink.protein?.toString() || '', category_id: drink.category_id?.toString() || '' })
     setEditing(drink.id)
     setShowForm(true)
   }
@@ -53,67 +63,44 @@ export default function Drinks() {
     if (!file) return
     setUploading(true)
     const ext = file.name.split('.').pop()
-    const path = `menu/${Date.now()}.${ext}`
+    const path = `drinks/${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('images').upload(path, file)
     if (!error) {
       const { data } = supabase.storage.from('images').getPublicUrl(path)
       setForm(f => ({ ...f, image_url: data.publicUrl }))
+    } else {
+      alert('Upload failed. Make sure "images" storage bucket exists and is public in Supabase.')
     }
     setUploading(false)
   }
 
-  const generateDescription = async () => {
-    if (!form.name) return
+  const aiGenerate = async (type: 'description' | 'price') => {
+    if (!form.name) return alert('Enter drink name first!')
     setAiLoading(true)
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-          messages: [{ role: 'user', content: `Write a short enticing 2-sentence menu description for a premium drink called "${form.name}". Sound luxurious. No quotes.` }]
-        })
-      })
-      const data = await res.json()
-      setForm(f => ({ ...f, description: data.content?.[0]?.text || '' }))
-    } catch {}
-    setAiLoading(false)
-  }
+      const prompt = type === 'description'
+        ? `Write a short enticing 2-sentence menu description for a premium drink called "${form.name}" sold in Kathmandu Nepal. Sound luxurious. No quotes.`
+        : `Suggest a fair price in Nepali Rupees for a premium drink called "${form.name}" in Kathmandu. Existing prices: ${drinks.slice(0, 5).map(d => `${d.name}: Rs${d.price}`).join(', ')}. Reply with ONLY a number like 350, nothing else.`
 
-  const generateIngredients = async () => {
-    if (!form.name) return
-    setAiLoading(true)
-    try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-          messages: [{ role: 'user', content: `List the likely ingredients for a drink called "${form.name}". Do NOT include amounts or recipes. Just a comma-separated list of ingredient names customers would want to know about. Keep it short.` }]
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 200,
+          messages: [{ role: 'user', content: prompt }]
         })
       })
       const data = await res.json()
-      setForm(f => ({ ...f, ingredients: data.content?.[0]?.text || '' }))
-    } catch {}
-    setAiLoading(false)
-  }
-
-  const suggestPrice = async () => {
-    if (!form.name) return
-    setAiLoading(true)
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-          messages: [{ role: 'user', content: `Suggest a fair price in Nepali Rupees for a premium drink called "${form.name}" in Kathmandu. Existing prices: ${drinks.slice(0, 5).map(d => `${d.name}: Rs${d.price}`).join(', ')}. Reply with ONLY a number like 350, nothing else.` }]
-        })
-      })
-      const data = await res.json()
-      const price = data.content?.[0]?.text?.trim() || ''
-      if (!isNaN(parseFloat(price))) setForm(f => ({ ...f, price }))
-    } catch {}
+      const text = data.content?.[0]?.text?.trim() || ''
+      if (type === 'description') {
+        setForm(f => ({ ...f, description: text }))
+      } else {
+        if (!isNaN(parseFloat(text))) setForm(f => ({ ...f, price: text }))
+      }
+    } catch {
+      alert('AI failed. Check your API key.')
+    }
     setAiLoading(false)
   }
 
@@ -121,7 +108,7 @@ export default function Drinks() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold">Drinks</h2>
+          <h2 className="text-2xl font-bold">Drinks Menu</h2>
           <p className="text-gray-400 text-sm">{drinks.length} items on menu</p>
         </div>
         <button onClick={() => { setForm(empty); setEditing(null); setShowForm(true) }}
@@ -147,7 +134,7 @@ export default function Drinks() {
               <div className="flex gap-2">
                 <input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
                   className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" placeholder="0" />
-                <button onClick={suggestPrice} disabled={aiLoading || !form.name}
+                <button onClick={() => aiGenerate('price')} disabled={aiLoading || !form.name}
                   className="flex items-center gap-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-3 py-2 rounded-lg text-xs disabled:opacity-50">
                   <Sparkles size={12} /> AI
                 </button>
@@ -170,37 +157,26 @@ export default function Drinks() {
               </label>
               {form.image_url && <img src={form.image_url} className="mt-2 w-16 h-16 rounded-lg object-cover" />}
             </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Calories</label>
+              <input type="number" value={form.calories} onChange={e => setForm(f => ({ ...f, calories: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" placeholder="e.g. 250" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Protein (g)</label>
+              <input type="number" value={form.protein} onChange={e => setForm(f => ({ ...f, protein: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" placeholder="e.g. 20" />
+            </div>
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs text-gray-400">Description</label>
-                <button onClick={generateDescription} disabled={aiLoading || !form.name}
+                <button onClick={() => aiGenerate('description')} disabled={aiLoading || !form.name}
                   className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 disabled:opacity-50">
                   <Sparkles size={11} /> {aiLoading ? 'Generating...' : 'AI Generate'}
                 </button>
               </div>
               <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 rows={2} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" placeholder="Describe this drink..." />
-            </div>
-            <div className="sm:col-span-2">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-gray-400">Ingredients (what's in it — no recipes)</label>
-                <button onClick={generateIngredients} disabled={aiLoading || !form.name}
-                  className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50">
-                  <Sparkles size={11} /> AI Fill
-                </button>
-              </div>
-              <input type="text" value={form.ingredients} onChange={e => setForm(f => ({ ...f, ingredients: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" placeholder="e.g. Mango, Coconut milk, Chia seeds" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">Allergens</label>
-              <input type="text" value={form.allergens} onChange={e => setForm(f => ({ ...f, allergens: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" placeholder="e.g. Dairy, Nuts" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">Health Benefits</label>
-              <input type="text" value={form.benefits} onChange={e => setForm(f => ({ ...f, benefits: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" placeholder="e.g. High protein, Antioxidants" />
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
@@ -223,6 +199,12 @@ export default function Drinks() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {drinks.length === 0 && (
+          <div className="col-span-3 text-center py-16 text-gray-500">
+            <p className="text-4xl mb-3">🥤</p>
+            <p>No drinks yet. Add your first drink!</p>
+          </div>
+        )}
         {drinks.map(d => (
           <div key={d.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-all">
             {d.image_url
@@ -235,7 +217,6 @@ export default function Drinks() {
               </div>
               <p className="text-xs text-gray-400 mb-1">{d.categories?.name || 'No category'}</p>
               <p className="text-xs text-gray-500 line-clamp-2 mb-3">{d.description}</p>
-              {d.ingredients && <p className="text-xs text-gray-600 mb-2">🧪 {d.ingredients}</p>}
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   <span className={`px-2 py-0.5 rounded-full text-xs ${d.is_available ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
