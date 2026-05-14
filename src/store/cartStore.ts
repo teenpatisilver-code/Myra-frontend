@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 export interface CartItem {
   id: string;
-  drinkId: number;
+  drinkId: string;        // ✅ was: number
   drinkName: string;
   drinkImageUrl?: string | null;
   price: number;
