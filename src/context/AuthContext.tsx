@@ -21,10 +21,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchRole = async (userId: string) => {
     const { data } = await supabase
       .from('profiles')
-      .select('role')
+      .select('is_admin')
       .eq('id', userId)
       .single();
-    setIsAdmin(data?.role === 'admin');
+    setIsAdmin(data?.is_admin === true);
   };
 
   useEffect(() => {
