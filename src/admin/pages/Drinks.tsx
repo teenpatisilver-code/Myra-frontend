@@ -12,12 +12,14 @@ export default function Drinks() {
   const [showForm, setShowForm] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const fetchData = async () => {
     const [d, c] = await Promise.all([
       supabase.from('drinks').select('*, categories(name)').order('name'),
       supabase.from('categories').select('*').order('name'),
     ])
+    if (d.error) alert('Fetch error: ' + d.error.message)
     setDrinks(d.data || [])
     setCategories(c.data || [])
   }
@@ -25,35 +27,52 @@ export default function Drinks() {
   useEffect(() => { fetchData() }, [])
 
   const save = async () => {
-    if (!form.name || !form.price) return
+    if (!form.name || !form.price) {
+      alert('Name and price are required!')
+      return
+    }
+    setSaving(true)
     const payload = {
       name: form.name,
-      description: form.description,
+      description: form.description || null,
       price: parseFloat(form.price as string),
       category_id: form.category_id ? parseInt(form.category_id) : null,
       is_available: form.is_available,
       is_featured: form.is_featured,
-      image_url: form.image_url,
+      image_url: form.image_url || null,
       calories: form.calories ? parseInt(form.calories) : null,
       protein: form.protein ? parseFloat(form.protein) : null,
     }
+
     if (editing) {
-      await supabase.from('drinks').update(payload).eq('id', editing)
+      const { error } = await supabase.from('drinks').update(payload).eq('id', editing)
+      if (error) { alert('Update failed: ' + error.message); setSaving(false); return }
     } else {
-      await supabase.from('drinks').insert(payload)
+      const { error } = await supabase.from('drinks').insert(payload)
+      if (error) { alert('Insert failed: ' + error.message); setSaving(false); return }
     }
-    setForm(empty); setEditing(null); setShowForm(false)
+    setForm(empty)
+    setEditing(null)
+    setShowForm(false)
+    setSaving(false)
     fetchData()
   }
 
   const del = async (id: string) => {
     if (!confirm('Delete this drink?')) return
-    await supabase.from('drinks').delete().eq('id', id)
-    fetchData()
+    const { error } = await supabase.from('drinks').delete().eq('id', id)
+    if (error) alert('Delete failed: ' + error.message)
+    else fetchData()
   }
 
   const edit = (drink: any) => {
-    setForm({ ...drink, price: drink.price.toString(), calories: drink.calories?.toString() || '', protein: drink.protein?.toString() || '', category_id: drink.category_id?.toString() || '' })
+    setForm({
+      ...drink,
+      price: drink.price?.toString() || '',
+      calories: drink.calories?.toString() || '',
+      protein: drink.protein?.toString() || '',
+      category_id: drink.category_id?.toString() || ''
+    })
     setEditing(drink.id)
     setShowForm(true)
   }
@@ -69,7 +88,7 @@ export default function Drinks() {
       const { data } = supabase.storage.from('images').getPublicUrl(path)
       setForm(f => ({ ...f, image_url: data.publicUrl }))
     } else {
-      alert('Upload failed. Make sure "images" storage bucket exists and is public in Supabase.')
+      alert('Upload failed: ' + error.message)
     }
     setUploading(false)
   }
@@ -81,25 +100,17 @@ export default function Drinks() {
       const prompt = type === 'description'
         ? `Write a short enticing 2-sentence menu description for a premium drink called "${form.name}" sold in Kathmandu Nepal. Sound luxurious. No quotes.`
         : `Suggest a fair price in Nepali Rupees for a premium drink called "${form.name}" in Kathmandu. Existing prices: ${drinks.slice(0, 5).map(d => `${d.name}: Rs${d.price}`).join(', ')}. Reply with ONLY a number like 350, nothing else.`
-
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 200,
-          messages: [{ role: 'user', content: prompt }]
-        })
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
       })
       const data = await res.json()
       const text = data.content?.[0]?.text?.trim() || ''
-      if (type === 'description') {
-        setForm(f => ({ ...f, description: text }))
-      } else {
-        if (!isNaN(parseFloat(text))) setForm(f => ({ ...f, price: text }))
-      }
+      if (type === 'description') setForm(f => ({ ...f, description: text }))
+      else if (!isNaN(parseFloat(text))) setForm(f => ({ ...f, price: text }))
     } catch {
-      alert('AI failed. Check your API key.')
+      alert('AI failed.')
     }
     setAiLoading(false)
   }
@@ -190,8 +201,9 @@ export default function Drinks() {
             </div>
           </div>
           <div className="flex gap-3 mt-4">
-            <button onClick={save} className="bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg text-sm font-medium">
-              {editing ? 'Update' : 'Create'} Drink
+            <button onClick={save} disabled={saving}
+              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black px-4 py-2 rounded-lg text-sm font-medium">
+              {saving ? 'Saving...' : editing ? 'Update Drink' : 'Create Drink'}
             </button>
             <button onClick={() => setShowForm(false)} className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm text-gray-300">Cancel</button>
           </div>
@@ -207,8 +219,7 @@ export default function Drinks() {
         )}
         {drinks.map(d => (
           <div key={d.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-all">
-            {d.image_url
-              ? <img src={d.image_url} className="w-full h-36 object-cover" />
+            {d.image_url ? <img src={d.image_url} className="w-full h-36 object-cover" />
               : <div className="w-full h-36 bg-gray-800 flex items-center justify-center text-4xl">🥤</div>}
             <div className="p-4">
               <div className="flex items-start justify-between mb-1">
