@@ -36,14 +36,13 @@ export default function Drinks() {
       name: form.name,
       description: form.description || null,
       price: parseFloat(form.price as string),
-      category_id: form.category_id ? parseInt(form.category_id) : null,
+      category_id: form.category_id || null,
       is_available: form.is_available,
       is_featured: form.is_featured,
       image_url: form.image_url || null,
       calories: form.calories ? parseInt(form.calories) : null,
       protein: form.protein ? parseFloat(form.protein) : null,
     }
-
     if (editing) {
       const { error } = await supabase.from('drinks').update(payload).eq('id', editing)
       if (error) { alert('Update failed: ' + error.message); setSaving(false); return }
@@ -71,7 +70,7 @@ export default function Drinks() {
       price: drink.price?.toString() || '',
       calories: drink.calories?.toString() || '',
       protein: drink.protein?.toString() || '',
-      category_id: drink.category_id?.toString() || ''
+      category_id: drink.category_id || ''
     })
     setEditing(drink.id)
     setShowForm(true)
