@@ -1,8 +1,15 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'wouter'
 import {
-  LayoutDashboard, ShoppingBag, Coffee,
-  Tag, Users, LogOut, Menu, X
+  LayoutDashboard,
+  ShoppingBag,
+  Coffee,
+  Tag,
+  Users,
+  LogOut,
+  Menu,
+  X,
+  Settings
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -12,9 +19,14 @@ const nav = [
   { href: '/admin/drinks', label: 'Drinks', icon: Coffee },
   { href: '/admin/categories', label: 'Categories', icon: Tag },
   { href: '/admin/customers', label: 'Customers', icon: Users },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const [location] = useLocation()
   const [open, setOpen] = useState(false)
 
@@ -25,16 +37,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-      {/* Sidebar */}
-      <aside className={`
+      <aside
+        className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800
         transform transition-transform duration-200 flex flex-col
         ${open ? 'translate-x-0' : '-translate-x-full'}
         lg:relative lg:translate-x-0
-      `}>
+      `}
+      >
         <div className="p-6 border-b border-gray-800">
-          <h1 className="text-xl font-bold text-amber-400">Myra Admin</h1>
-          <p className="text-xs text-gray-400 mt-1">Control Panel</p>
+          <h1 className="text-xl font-bold text-amber-400">
+            Myra Admin
+          </h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Control Panel
+          </p>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -44,9 +61,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 onClick={() => setOpen(false)}
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${location === href
-                    ? 'bg-amber-500 text-black'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'}
+                  ${
+                    location === href
+                      ? 'bg-amber-500 text-black'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  }
                 `}
               >
                 <Icon size={18} />
@@ -67,7 +86,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Overlay */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
@@ -75,7 +93,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         />
       )}
 
-      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 bg-gray-900 border-b border-gray-800 flex items-center px-4 gap-4">
           <button
@@ -84,7 +101,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span className="text-sm text-gray-400 ml-auto">Myra Drinks Dashboard</span>
+
+          <span className="text-sm text-gray-400 ml-auto">
+            Myra Drinks Dashboard
+          </span>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
