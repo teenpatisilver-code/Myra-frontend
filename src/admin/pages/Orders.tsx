@@ -15,7 +15,10 @@ export default function Orders() {
   const [filter, setFilter] = useState('all')
 
   const fetchOrders = async () => {
-    let query = supabase.from('orders').select('*, profiles(email)').order('created_at', { ascending: false })
+    let query = supabase
+      .from('orders')
+      .select('*, profiles(email)')
+      .order('created_at', { ascending: false })
     if (filter !== 'all') query = query.eq('status', filter)
     const { data } = await query
     setOrders(data || [])
@@ -35,24 +38,37 @@ export default function Orders() {
           <h2 className="text-2xl font-bold">Orders</h2>
           <p className="text-gray-400 text-sm">{orders.length} orders</p>
         </div>
-        <button onClick={fetchOrders} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white bg-gray-800 px-3 py-2 rounded-lg">
+        <button
+          onClick={fetchOrders}
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white bg-gray-800 px-3 py-2 rounded-lg"
+        >
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
+
+      {/* Filter Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {['all', 'pending', 'confirmed', 'ready', 'delivered', 'cancelled'].map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${filter === f ? 'bg-amber-500 text-black' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+              filter === f ? 'bg-amber-500 text-black' : 'bg-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >
             {f}
           </button>
         ))}
       </div>
+
+      {/* Table */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-800">
             <tr className="text-gray-400 text-xs">
-              <th className="text-left p-4">ID</th>
+              <th className="text-left p-4">#</th>
               <th className="text-left p-4">Customer</th>
+              <th className="text-left p-4">Type</th>
               <th className="text-left p-4">Total</th>
               <th className="text-left p-4">Status</th>
               <th className="text-left p-4">Update</th>
@@ -60,24 +76,58 @@ export default function Orders() {
             </tr>
           </thead>
           <tbody>
-            {orders.map(order => (
+            {orders.map((order) => (
               <tr key={order.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                <td className="p-4 font-mono text-xs text-gray-500">{order.id.slice(0, 8)}</td>
-                <td className="p-4 text-gray-300">{order.profiles?.email || 'Guest'}</td>
-                <td className="p-4 text-amber-400 font-medium">Rs {order.total_amount?.toFixed(2)}</td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[order.status] || ''}`}>{order.status}</span>
+
+                {/* ✅ Order number — newest = highest */}
+                <td className="p-4 font-bold text-amber-400">
+                  #{orders.length - orders.indexOf(order)}
                 </td>
+
+                <td className="p-4 text-gray-300">
+                  {order.profiles?.email || 'Guest'}
+                </td>
+
+                {/* ✅ Order type */}
+                <td className="p-4 text-gray-400 text-xs capitalize">
+                  {order.order_type?.replace('_', ' ') || '—'}
+                </td>
+
+                <td className="p-4 text-amber-400 font-medium">
+                  Rs {order.total_amount?.toFixed(2)}
+                </td>
+
                 <td className="p-4">
-                  <select value={order.status} onChange={e => updateStatus(order.id, e.target.value)}
-                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white">
-                    {['pending','confirmed','ready','delivered','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[order.status] || ''}`}>
+                    {order.status}
+                  </span>
+                </td>
+
+                <td className="p-4">
+                  <select
+                    value={order.status}
+                    onChange={e => updateStatus(order.id, e.target.value)}
+                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white"
+                  >
+                    {['pending', 'confirmed', 'ready', 'delivered', 'cancelled'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </td>
-                <td className="p-4 text-gray-400 text-xs">{new Date(order.created_at).toLocaleDateString()}</td>
+
+                <td className="p-4 text-gray-400 text-xs">
+                  {new Date(order.created_at).toLocaleDateString()}
+                </td>
+
               </tr>
             ))}
-            {orders.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">No orders found</td></tr>}
+            {orders.length === 0 && (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-gray-500">
+                  No orders found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
