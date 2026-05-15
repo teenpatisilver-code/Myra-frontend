@@ -62,12 +62,15 @@ export default function CheckoutPage() {
 
   const [upsell, setUpsell] = useState("");
   const [upsellLoading, setUpsellLoading] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [phoneFromProfile, setPhoneFromProfile] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setLocation("/auth");
       return;
     }
+
     if (items.length === 0) {
       setLocation("/cart");
       return;
@@ -83,8 +86,22 @@ export default function CheckoutPage() {
         if (data) setDeliveryPrice(Number(data.value));
       });
 
+    // ✅ Auto-fill phone from profile
+    supabase
+      .from("profiles")
+      .select("phone")
+      .eq("id", user!.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.phone) {
+          setPhone(data.phone);
+          setPhoneFromProfile(true);
+        }
+      });
+
     // Gemini upsell suggestion
     setUpsellLoading(true);
+
     getUpsellSuggestion(items.map((i) => i.drinkName))
       .then(setUpsell)
       .catch(() => {})
@@ -96,20 +113,29 @@ export default function CheckoutPage() {
       toast({ title: "GPS not supported", variant: "destructive" });
       return;
     }
+
     setGpsLoading(true);
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+
         setLatitude(lat);
         setLongitude(lng);
         setAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+
         setGpsLoading(false);
+
         toast({ title: "📍 Location captured!" });
       },
       (err) => {
         setGpsLoading(false);
-        toast({ title: "GPS failed: " + err.message, variant: "destructive" });
+
+        toast({
+          title: "GPS failed: " + err.message,
+          variant: "destructive",
+        });
       }
     );
   }
@@ -120,13 +146,31 @@ export default function CheckoutPage() {
 
   const placeOrder = async () => {
     if (!user) {
-      toast({ title: "Please login first", variant: "destructive" });
+      toast({
+        title: "Please login first",
+        variant: "destructive",
+      });
+
       setLocation("/auth");
       return;
     }
 
     if (items.length === 0) {
-      toast({ title: "Your cart is empty", variant: "destructive" });
+      toast({
+        title: "Your cart is empty",
+        variant: "destructive",
+      });
+
+      return;
+    }
+
+    if (!phone.trim()) {
+      toast({
+        title: "Phone number required",
+        description: "Please add your phone number to place an order.",
+        variant: "destructive",
+      });
+
       return;
     }
 
@@ -136,6 +180,7 @@ export default function CheckoutPage() {
         description: "Please enter your delivery address.",
         variant: "destructive",
       });
+
       return;
     }
 
@@ -159,7 +204,10 @@ export default function CheckoutPage() {
           latitude: latitude,
           longitude: longitude,
           map_url: mapUrl,
-          notes: `Items: ${items.map((i) => `${i.drinkName} x${i.quantity}`).join(", ")}`,
+          phone_number: phone,
+          notes: `Items: ${items
+            .map((i) => `${i.drinkName} x${i.quantity}`)
+            .join(", ")}`,
         })
         .select()
         .single();
@@ -189,19 +237,23 @@ export default function CheckoutPage() {
 
       // Step 3 — clear cart and redirect
       clearCart();
+
       toast({
         title: "Order placed! 🎉",
         description: "Your order is being prepared.",
       });
+
       setLocation("/orders");
 
     } catch (err: any) {
       console.error("Place order error:", err);
+
       toast({
         title: "Order failed",
         description: err.message || "Please try again.",
         variant: "destructive",
       });
+
     } finally {
       setPlacing(false);
     }
@@ -229,6 +281,7 @@ export default function CheckoutPage() {
           <h2 className="font-semibold text-foreground text-sm">
             How would you like to receive your order?
           </h2>
+
           <div className="grid gap-3">
             {ORDER_TYPES.map(({ key, label, description, icon: Icon }) => (
               <motion.button
@@ -250,19 +303,29 @@ export default function CheckoutPage() {
                 >
                   <Icon className="w-5 h-5" />
                 </div>
+
                 <div className="flex-1">
-                  <p className="font-semibold text-foreground text-sm">{label}</p>
-                  <p className="text-xs text-muted-foreground">{description}</p>
+                  <p className="font-semibold text-foreground text-sm">
+                    {label}
+                  </p>
+
+                  <p className="text-xs text-muted-foreground">
+                    {description}
+                  </p>
                 </div>
+
                 <div className="text-right">
                   {key === "delivery" ? (
                     <span className="text-sm font-bold text-foreground">
                       Rs {deliveryPrice}
                     </span>
                   ) : (
-                    <span className="text-sm font-bold text-green-400">Free</span>
+                    <span className="text-sm font-bold text-green-400">
+                      Free
+                    </span>
                   )}
                 </div>
+
                 {orderType === key && (
                   <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
                 )}
@@ -282,6 +345,7 @@ export default function CheckoutPage() {
               <MapPin className="w-4 h-4 text-primary" />
               Delivery Address
             </h2>
+
             <textarea
               value={address}
               onChange={(e) => setAddress(e.target.value)}
@@ -289,6 +353,7 @@ export default function CheckoutPage() {
               rows={3}
               className="w-full rounded-xl border border-border bg-card p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
             />
+
             {/* GPS Button */}
             <button
               type="button"
@@ -301,8 +366,12 @@ export default function CheckoutPage() {
               ) : (
                 <Navigation className="w-4 h-4" />
               )}
-              {gpsLoading ? "Getting location..." : "Use Current Location (GPS)"}
+
+              {gpsLoading
+                ? "Getting location..."
+                : "Use Current Location (GPS)"}
             </button>
+
             {/* GPS confirmed */}
             {latitude && longitude && (
               <div className="flex items-center gap-2 text-xs text-green-400 bg-green-400/10 border border-green-400/20 rounded-lg p-2">
@@ -312,6 +381,27 @@ export default function CheckoutPage() {
             )}
           </motion.div>
         )}
+
+        {/* Phone Number */}
+        <div className="space-y-2">
+          <h2 className="font-semibold text-foreground text-sm flex items-center gap-2">
+            📱 Phone Number{" "}
+            <span className="text-red-400 text-xs">*required</span>
+          </h2>
+
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+977 98XXXXXXXX"
+            className="w-full rounded-xl border border-border bg-card p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+          />
+
+          {phoneFromProfile && (
+            <p className="text-xs text-green-400">
+              ✓ Auto-filled from your profile
+            </p>
+          )}
+        </div>
 
         {/* AI Upsell Banner */}
         {(upsell || upsellLoading) && (
@@ -326,26 +416,50 @@ export default function CheckoutPage() {
           <h2 className="font-semibold text-foreground text-sm mb-3">
             Order Summary
           </h2>
+
           {items.map((item) => (
-            <div key={item.id} className="flex justify-between text-sm text-muted-foreground">
-              <span>{item.drinkName} × {item.quantity}</span>
-              <span>Rs {Math.round(item.price * item.quantity)}</span>
+            <div
+              key={item.id}
+              className="flex justify-between text-sm text-muted-foreground"
+            >
+              <span>
+                {item.drinkName} × {item.quantity}
+              </span>
+
+              <span>
+                Rs {Math.round(item.price * item.quantity)}
+              </span>
             </div>
           ))}
+
           <div className="border-t border-border pt-2 mt-2 space-y-1">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal</span>
               <span>Rs {Math.round(subtotal)}</span>
             </div>
+
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Delivery fee</span>
-              <span className={deliveryFee === 0 ? "text-green-400 font-medium" : ""}>
-                {deliveryFee === 0 ? "Free" : `Rs ${deliveryFee}`}
+
+              <span
+                className={
+                  deliveryFee === 0
+                    ? "text-green-400 font-medium"
+                    : ""
+                }
+              >
+                {deliveryFee === 0
+                  ? "Free"
+                  : `Rs ${deliveryFee}`}
               </span>
             </div>
+
             <div className="flex justify-between font-bold text-foreground text-base border-t border-border pt-2 mt-1">
               <span>Total</span>
-              <span className="text-primary">Rs {Math.round(total)}</span>
+
+              <span className="text-primary">
+                Rs {Math.round(total)}
+              </span>
             </div>
           </div>
         </div>
@@ -362,6 +476,7 @@ export default function CheckoutPage() {
                 ? "Placing Order..."
                 : `Place Order • Rs ${Math.round(total)}`}
             </Button>
+
             <p className="text-xs text-center text-muted-foreground mt-2">
               +10 loyalty points with this order
             </p>
