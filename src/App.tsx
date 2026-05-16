@@ -13,9 +13,9 @@ const AuthPage = lazy(() => import("@/pages/auth"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
 const RewardsPage = lazy(() => import("@/pages/rewards"));
+const FavoritesPage = lazy(() => import("@/pages/favorites")); // Favorites import
 const CartPage = lazy(() => import("@/pages/cart"));
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
-const FavoritesPage = lazy(() => import("@/pages/favorites"));
 const AdminApp = lazy(() => import("@/admin/AdminApp"));
 
 const queryClient = new QueryClient({
@@ -47,10 +47,11 @@ function Router() {
         <Route path="/profile" component={ProfilePage} />
         <Route path="/orders" component={OrdersPage} />
         <Route path="/rewards" component={RewardsPage} />
-        <Route path="/favorites" component={FavoritesPage} />
-        <Route path="/cart" component={CartPage} />
 
-        {/* Checkout Route */}
+        {/* Favorites Route */}
+        <Route path="/favorites" component={FavoritesPage} />
+
+        <Route path="/cart" component={CartPage} />
         <Route path="/checkout" component={CheckoutPage} />
 
         {/* Admin Routes */}
