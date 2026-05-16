@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, ShoppingBag, UtensilsCrossed, User } from "lucide-react";
+import { Home, UtensilsCrossed, Heart, User, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
@@ -12,13 +12,13 @@ interface LayoutProps {
 export default function Layout({ children, hideNav }: LayoutProps) {
   const [location] = useLocation();
   const { items } = useCartStore();
-  useAuth(); // Just to check if user is authenticated
+  useAuth();
   const cartCount = items.reduce((s, i) => s + i.quantity, 0);
 
   const navItems = [
     { path: "/", icon: Home, label: "Home" },
     { path: "/menu", icon: UtensilsCrossed, label: "Menu" },
-    { path: "/cart", icon: ShoppingBag, label: "Cart", badge: cartCount },
+    { path: "/favorites", icon: Heart, label: "Favorites" },
     { path: "/profile", icon: User, label: "Profile" },
   ];
 
@@ -29,29 +29,25 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="font-serif text-xl font-bold text-primary neon-text tracking-wide">MYRA</span>
-            <span className="text-muted-foreground text-sm font-medium">DRINKS</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`text-sm font-medium transition-colors relative ${
-                  location === item.path ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {item.label}
-                {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </nav>
-          <div className="md:hidden relative">
-            <Link href="/cart">
-              <ShoppingBag className={`w-5 h-5 ${location === "/cart" ? "text-primary" : "text-muted-foreground"}`} />
+          <div className="flex items-center gap-4">
+            {/* Desktop nav */}
+            <nav className="hidden md:flex items-center gap-6">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`text-sm font-medium transition-colors ${
+                    location === item.path ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            {/* Cart icon top right always */}
+            <Link href="/cart" className="relative">
+              <ShoppingCart className={`w-5 h-5 ${location === "/cart" ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`} />
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
                   {cartCount > 9 ? "9+" : cartCount}
@@ -76,12 +72,7 @@ export default function Layout({ children, hideNav }: LayoutProps) {
               return (
                 <Link key={item.path} href={item.path} className="flex flex-col items-center gap-0.5 relative px-3 py-1">
                   <div className="relative">
-                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                    {item.badge && item.badge > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
-                        {item.badge > 9 ? "9+" : item.badge}
-                      </span>
-                    )}
+                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? "text-primary fill-primary" : "text-muted-foreground"}`} />
                   </div>
                   <span className={`text-xs transition-colors ${isActive ? "text-primary font-semibold" : "text-muted-foreground"}`}>
                     {item.label}
