@@ -1,62 +1,72 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowRight, Zap, Leaf, Dumbbell, Tag } from "lucide-react";
+import { ArrowRight, Zap } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import DrinkCard from "@/components/DrinkCard";
-import { useCategories, useMenuItems, useFeaturedMenuItems } from "@/hooks/useMenuData";
+import { useMenuItems, useFeaturedMenuItems } from "@/hooks/useMenuData";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import type { MenuItem } from "@/hooks/useMenuData";
 
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "protein-drinks": <Dumbbell className="w-5 h-5" />,
-  "healthy-juice": <Leaf className="w-5 h-5" />,
-  "mocktails": <Zap className="w-5 h-5" />,
-  "smoothies": <Zap className="w-5 h-5" />,
-  "coffee": <Zap className="w-5 h-5" />,
-  "energy-drinks": <Zap className="w-5 h-5" />,
-  "snacks": <Tag className="w-5 h-5" />,
-};
-
 function BannerSlider() {
-  return (
-    <div className="w-full h-48 md:h-64 rounded-2xl bg-gradient-to-br from-primary/20 via-muted to-secondary/20 flex items-center justify-center border border-primary/20">
-      <div className="text-center">
-        <h2 className="text-3xl md:text-5xl font-serif font-bold text-primary neon-text">MYRA DRINKS</h2>
-        <p className="text-muted-foreground mt-2">Premium Beverages in Kathmandu</p>
-        <Link href="/menu">
-          <Button className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
-            Order Now <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </Link>
-      </div>
-    </div>
-  );
-}
+  const [banners, setBanners] = useState<any[]>([])
+  const [current, setCurrent] = useState(0)
 
-function CategorySlider() {
-  const { data: categories, isLoading } = useCategories();
-  if (isLoading) return (
-    <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
-      {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-20 flex-shrink-0 rounded-xl" />)}
-    </div>
-  );
-  return (
-    <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
-      {categories?.map((cat, i) => (
-        <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-          <Link href={`/menu?categoryId=${cat.id}`}>
-            <div className="glass-card border border-border hover:border-primary/40 rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-all duration-200 hover:bg-primary/5 min-w-[80px]">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                {CATEGORY_ICONS[cat.slug] ?? <Zap className="w-5 h-5" />}
-              </div>
-              <span className="text-xs font-medium text-center leading-tight text-foreground">{cat.name}</span>
-            </div>
+  useEffect(() => {
+    supabase.from('ads').select('*').eq('is_active', true).order('sort_order')
+      .then(({ data }) => { if (data && data.length > 0) setBanners(data) })
+  }, [])
+
+  useEffect(() => {
+    if (banners.length <= 1) return
+    const timer = setInterval(() => setCurrent(c => (c + 1) % banners.length), 4000)
+    return () => clearInterval(timer)
+  }, [banners])
+
+  if (banners.length === 0) {
+    return (
+      <div className="w-full h-48 md:h-64 rounded-2xl bg-gradient-to-br from-primary/20 via-muted to-secondary/20 flex items-center justify-center border border-primary/20">
+        <div className="text-center">
+          <h2 className="text-3xl md:text-5xl font-serif font-bold text-primary neon-text">MYRA DRINKS</h2>
+          <p className="text-muted-foreground mt-2">Premium Beverages in Kathmandu</p>
+          <Link href="/menu">
+            <button className="mt-4 bg-primary text-primary-foreground px-6 py-2 rounded-full font-medium hover:bg-primary/90 flex items-center gap-2 mx-auto">
+              Order Now <ArrowRight className="w-4 h-4" />
+            </button>
           </Link>
-        </motion.div>
-      ))}
+        </div>
+      </div>
+    )
+  }
+
+  const banner = banners[current]
+  return (
+    <div className="relative w-full h-48 md:h-64 rounded-2xl overflow-hidden">
+      <img src={banner.image_url} alt={banner.title} className="w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-black/40 flex items-end p-5">
+        <div>
+          <h2 className="text-2xl font-bold text-white">{banner.title}</h2>
+          {banner.subtitle && <p className="text-white/80 text-sm mt-1">{banner.subtitle}</p>}
+          {banner.link_url && (
+            <Link href={banner.link_url}>
+              <button className="mt-3 bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-medium">
+                {banner.cta_text || 'Order Now'}
+              </button>
+            </Link>
+          )}
+        </div>
+      </div>
+      {banners.length > 1 && (
+        <div className="absolute bottom-3 right-4 flex gap-1">
+          {banners.map((_, i) => (
+            <button key={i} onClick={() => setCurrent(i)}
+              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-white w-4' : 'bg-white/50'}`} />
+          ))}
+        </div>
+      )}
     </div>
-  );
+  )
 }
 
 function SectionHeader({ title, href }: { title: string; href: string }) {
@@ -76,7 +86,12 @@ function DrinkGrid({ drinks, isLoading }: { drinks?: MenuItem[]; isLoading?: boo
       {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-52 rounded-xl" />)}
     </div>
   );
-  if (!drinks || drinks.length === 0) return null;
+  if (!drinks || drinks.length === 0) return (
+    <div className="text-center py-8 text-muted-foreground">
+      <Zap className="w-8 h-8 mx-auto mb-2 opacity-30" />
+      <p className="text-sm">No drinks yet — add some from admin!</p>
+    </div>
+  );
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {drinks.slice(0, 4).map((drink, i) => (
@@ -100,10 +115,6 @@ export default function HomePage() {
     <Layout>
       <div className="py-4 space-y-8">
         <BannerSlider />
-        <section>
-          <h2 className="text-lg font-bold text-foreground font-serif tracking-wide mb-3">Categories</h2>
-          <CategorySlider />
-        </section>
         <section>
           <SectionHeader title="Featured Drinks" href="/menu?featured=true" />
           <DrinkGrid drinks={featuredDrinks ?? undefined} isLoading={featuredLoading} />
