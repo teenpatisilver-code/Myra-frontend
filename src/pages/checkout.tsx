@@ -1,257 +1,248 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import {
-  MapPin,
-  Store,
-  Dumbbell,
-  Truck,
-  ArrowLeft,
-  CheckCircle,
-  Navigation,
-  Loader2,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, MapPin, Phone, ShoppingBag, Bike, Store, UtensilsCrossed, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Layout from "@/components/Layout";
 import { useCartStore } from "@/store/cartStore";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
-// ✅ FIXED: Gemini → Groq
-import { getUpsellSuggestion } from "@/lib/groq";
-
-type OrderType = "pickup" | "revolve_fitness" | "delivery";
-
-const ORDER_TYPES = [
-  {
-    key: "pickup" as OrderType,
-    label: "Pickup",
-    description: "Collect from our store",
-    icon: Store,
-    price: 0,
-  },
-  {
-    key: "revolve_fitness" as OrderType,
-    label: "Revolve Fitness",
-    description: "Delivered to the gym",
-    icon: Dumbbell,
-    price: 0,
-  },
-  {
-    key: "delivery" as OrderType,
-    label: "Delivery",
-    description: "Delivered to your door",
-    icon: Truck,
-    price: null,
-  },
-];
+type OrderType = "pickup" | "delivery" | "dine_in";
 
 export default function CheckoutPage() {
-  const { items, getTotal, clearCart } = useCartStore();
-  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const { items, getTotal, clearCart } = useCartStore();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [orderType, setOrderType] = useState<OrderType>("pickup");
-  const [deliveryPrice, setDeliveryPrice] = useState(150);
-  const [address, setAddress] = useState("");
-  const [placing, setPlacing] = useState(false);
-
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
-  const [gpsLoading, setGpsLoading] = useState(false);
-
-  const [upsell, setUpsell] = useState("");
-  const [upsellLoading, setUpsellLoading] = useState(false);
   const [phone, setPhone] = useState("");
-  const [phoneFromProfile, setPhoneFromProfile] = useState(false);
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [placing, setPlacing] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation("/auth");
-      return;
-    }
+  const deliveryFee = orderType === "delivery" ? 100 : 0;
+  const total = getTotal() + deliveryFee;
 
-    if (items.length === 0) {
-      setLocation("/cart");
-      return;
-    }
-
-    supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "delivery_price")
-      .single()
-      .then(({ data }) => {
-        if (data) setDeliveryPrice(Number(data.value));
-      });
-
-    supabase
-      .from("profiles")
-      .select("phone")
-      .eq("id", user!.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.phone) {
-          setPhone(data.phone);
-          setPhoneFromProfile(true);
-        }
-      });
-
-    // ✅ Groq upsell suggestion (was Gemini)
-    setUpsellLoading(true);
-
-    getUpsellSuggestion(items.map((i) => i.drinkName))
-      .then(setUpsell)
-      .catch(() => {})
-      .finally(() => setUpsellLoading(false));
-  }, []);
-
-  function handleGPS() {
-    if (!navigator.geolocation) {
-      toast({ title: "GPS not supported", variant: "destructive" });
-      return;
-    }
-
-    setGpsLoading(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-
-        setLatitude(lat);
-        setLongitude(lng);
-        setAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-
-        setGpsLoading(false);
-
-        toast({ title: "📍 Location captured!" });
-      },
-      (err) => {
-        setGpsLoading(false);
-        toast({
-          title: "GPS failed: " + err.message,
-          variant: "destructive",
-        });
-      }
-    );
-  }
-
-  const deliveryFee = orderType === "delivery" ? deliveryPrice : 0;
-  const subtotal = getTotal();
-  const total = subtotal + deliveryFee;
-
-  const placeOrder = async () => {
-    if (!user) {
-      toast({ title: "Please login first", variant: "destructive" });
-      setLocation("/auth");
-      return;
-    }
-
-    if (items.length === 0) {
-      toast({ title: "Your cart is empty", variant: "destructive" });
-      return;
-    }
-
-    if (!phone.trim()) {
-      toast({
-        title: "Phone number required",
-        description: "Please add your phone number to place an order.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handlePlaceOrder = async () => {
+    if (!user) { setLocation("/auth"); return; }
+    if (items.length === 0) return;
     if (orderType === "delivery" && !address.trim()) {
-      toast({
-        title: "Address required",
-        description: "Please enter your delivery address.",
-        variant: "destructive",
-      });
+      toast({ title: "Please enter delivery address", variant: "destructive" });
+      return;
+    }
+    if (!phone.trim()) {
+      toast({ title: "Please enter your phone number", variant: "destructive" });
       return;
     }
 
     setPlacing(true);
-
     try {
-      const mapUrl =
-        latitude && longitude
-          ? `https://www.google.com/maps?q=${latitude},${longitude}`
-          : null;
-
-      const { data: order, error: orderError } = await supabase
+      const { data: order, error } = await supabase
         .from("orders")
         .insert({
           user_id: user.id,
-          total_amount: total,
           status: "pending",
+          total_amount: total,
           order_type: orderType,
           delivery_address: orderType === "delivery" ? address : null,
-          latitude,
-          longitude,
-          map_url: mapUrl,
           phone_number: phone,
-          notes: `Items: ${items
-            .map((i) => `${i.drinkName} x${i.quantity}`)
-            .join(", ")}`,
+          notes: notes || null,
         })
         .select()
         .single();
 
-      if (orderError) throw new Error(orderError.message);
+      if (error || !order) throw error;
 
-      const orderItems = items.map((i) => ({
+      const orderItems = items.map((item) => ({
         order_id: order.id,
-        menu_item_id: i.drinkId,
-        drink_name: i.drinkName,
-        unit_price: i.price,
-        quantity: i.quantity,
+        drink_id: item.drinkId,
+        drink_name: item.drinkName,
+        quantity: item.quantity,
+        unit_price: item.price,
       }));
 
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw new Error(itemsError.message);
+      await supabase.from("order_items").insert(orderItems);
 
       clearCart();
-
-      toast({
-        title: "Order placed! 🎉",
-        description: "Your order is being prepared.",
-      });
-
-      setLocation("/orders");
-    } catch (err: any) {
-      toast({
-        title: "Order failed",
-        description: err.message || "Please try again.",
-        variant: "destructive",
-      });
+      setSuccess(true);
+    } catch (err) {
+      toast({ title: "Failed to place order", description: "Please try again", variant: "destructive" });
     } finally {
       setPlacing(false);
     }
   };
 
-  return (
-    <Layout>
-      <div className="py-4 space-y-5 pb-48">
+  if (success) {
+    return (
+      <Layout hideNav>
+        <div className="min-h-[80vh] flex flex-col items-center justify-center text-center space-y-6 py-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          >
+            <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-2"
+          >
+            <h1 className="text-3xl font-serif font-bold text-foreground">Order Placed!</h1>
+            <p className="text-muted-foreground">We've received your order and will start preparing it shortly.</p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex flex-col gap-3 w-full max-w-xs"
+          >
+            <Button onClick={() => setLocation("/orders")} className="bg-primary text-primary-foreground w-full">
+              Track My Order
+            </Button>
+            <Button variant="ghost" onClick={() => setLocation("/menu")} className="w-full">
+              Order More
+            </Button>
+          </motion.div>
+        </div>
+      </Layout>
+    );
+  }
 
-        <button
-          onClick={() => setLocation("/cart")}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-        >
+  return (
+    <Layout hideNav>
+      <div className="py-4 pb-32 max-w-lg mx-auto space-y-6">
+        {/* Header */}
+        <button onClick={() => setLocation("/cart")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Back to Cart
+          <span className="text-sm">Back to Cart</span>
         </button>
 
-        <h1 className="text-2xl font-bold font-serif">Checkout</h1>
+        <h1 className="text-2xl font-serif font-bold">Checkout</h1>
 
-        {/* rest of UI unchanged */}
-        {/* (no logic changes needed below) */}
+        {/* Order Type */}
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Order Type</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { type: "pickup" as OrderType, icon: Store, label: "Pickup", sub: "Free" },
+              { type: "delivery" as OrderType, icon: Bike, label: "Delivery", sub: "+Rs 100" },
+              { type: "dine_in" as OrderType, icon: UtensilsCrossed, label: "Dine In", sub: "Free" },
+            ].map(({ type, icon: Icon, label, sub }) => (
+              <button
+                key={type}
+                onClick={() => setOrderType(type)}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                  orderType === type
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/50"
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-xs font-semibold">{label}</span>
+                <span className="text-xs opacity-70">{sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
+        {/* Phone */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Phone Number *</Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+977 98XXXXXXXX"
+              className="pl-9 bg-card border-border"
+            />
+          </div>
+        </div>
+
+        {/* Delivery Address */}
+        <AnimatePresence>
+          {orderType === "delivery" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-2 overflow-hidden"
+            >
+              <Label className="text-sm font-semibold">Delivery Address *</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Enter your full delivery address..."
+                  rows={3}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Special Instructions <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Extra ice, no sugar, etc."
+            className="bg-card border-border"
+          />
+        </div>
+
+        {/* Order Summary */}
+        <div className="glass-card rounded-2xl p-5 border border-border space-y-3">
+          <h3 className="font-semibold text-sm">Order Summary</h3>
+          <div className="space-y-2">
+            {items.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{item.drinkName} × {item.quantity}</span>
+                <span>Rs {Math.round(item.price * item.quantity)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-border pt-3 space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Subtotal</span>
+              <span>Rs {Math.round(getTotal())}</span>
+            </div>
+            {deliveryFee > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Delivery Fee</span>
+                <span>Rs {deliveryFee}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-foreground text-base">
+              <span>Total</span>
+              <span className="text-primary">Rs {Math.round(total)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Place Order Button */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border">
+          <div className="max-w-lg mx-auto">
+            <Button
+              onClick={handlePlaceOrder}
+              disabled={placing || items.length === 0}
+              className="w-full h-12 bg-primary text-primary-foreground font-semibold text-base"
+            >
+              {placing ? "Placing Order..." : `Place Order · Rs ${Math.round(total)}`}
+            </Button>
+          </div>
+        </div>
       </div>
     </Layout>
   );
