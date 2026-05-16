@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Plus, Zap, Flame } from "lucide-react";
+import { Plus, Zap, Flame, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/store/cartStore";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import type { MenuItem } from "@/hooks/useMenuData";
 
 interface DrinkCardProps {
@@ -15,7 +17,48 @@ interface DrinkCardProps {
 export default function DrinkCard({ drink }: DrinkCardProps) {
   const { addItem } = useCartStore();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [imgError, setImgError] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+
+  useEffect(() => {
+    // Get like count
+    supabase
+      .from("drink_likes")
+      .select("id", { count: "exact" })
+      .eq("drink_id", drink.id)
+      .then(({ count }) => setLikeCount(count ?? 0));
+
+    // Check if user liked
+    if (user) {
+      supabase
+        .from("drink_likes")
+        .select("id")
+        .eq("drink_id", drink.id)
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data }) => setLiked(!!data));
+    }
+  }, [drink.id, user]);
+
+  const toggleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast({ title: "Sign in to like drinks", variant: "destructive" });
+      return;
+    }
+    if (liked) {
+      await supabase.from("drink_likes").delete().eq("drink_id", drink.id).eq("user_id", user.id);
+      setLiked(false);
+      setLikeCount(c => c - 1);
+    } else {
+      await supabase.from("drink_likes").insert({ drink_id: drink.id, user_id: user.id });
+      setLiked(true);
+      setLikeCount(c => c + 1);
+    }
+  };
 
   const discountedPrice = (() => {
     if (drink.discountFixed != null && drink.discountFixed > 0)
@@ -68,6 +111,13 @@ export default function DrinkCard({ drink }: DrinkCardProps) {
                   : `-${Math.round(drink.discountPercent ?? 0)}%`}
               </Badge>
             )}
+            {/* Like button */}
+            <button
+              onClick={toggleLike}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-all hover:scale-110"
+            >
+              <Heart className={`w-4 h-4 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+            </button>
             {!drink.isAvailable && (
               <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
                 <span className="text-muted-foreground font-medium text-sm">Unavailable</span>
@@ -110,14 +160,22 @@ export default function DrinkCard({ drink }: DrinkCardProps) {
                   </span>
                 )}
               </div>
-              <Button
-                size="sm"
-                onClick={handleAddToCart}
-                disabled={!drink.isAvailable}
-                className="h-7 w-7 p-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {likeCount > 0 && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                    <Heart className="w-3 h-3 fill-red-400 text-red-400" />
+                    {likeCount}
+                  </span>
+                )}
+                <Button
+                  size="sm"
+                  onClick={handleAddToCart}
+                  disabled={!drink.isAvailable}
+                  className="h-7 w-7 p-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
