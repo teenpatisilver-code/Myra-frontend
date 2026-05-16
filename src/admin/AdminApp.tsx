@@ -7,6 +7,7 @@ import Drinks from './pages/Drinks'
 import Categories from './pages/Categories'
 import Customers from './pages/Customers'
 import Settings from './pages/Settings'
+import Banners from './pages/Banners' // ✅ added
 
 export default function AdminApp() {
   const { loading, isAdmin } = useAdminGuard()
@@ -28,6 +29,10 @@ export default function AdminApp() {
         <Route path="/admin/categories" component={Categories} />
         <Route path="/admin/customers" component={Customers} />
         <Route path="/admin/settings" component={Settings} />
+
+        {/* ✅ added */}
+        <Route path="/admin/banners" component={Banners} />
+
         <Route path="/admin" component={Dashboard} />
       </Switch>
     </AdminLayout>
