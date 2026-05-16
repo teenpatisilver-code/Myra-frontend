@@ -49,9 +49,15 @@ function Router() {
         <Route path="/rewards" component={RewardsPage} />
         <Route path="/favorites" component={FavoritesPage} />
         <Route path="/cart" component={CartPage} />
+
+        {/* Checkout Route */}
         <Route path="/checkout" component={CheckoutPage} />
+
+        {/* Admin Routes */}
         <Route path="/admin" component={AdminApp} />
         <Route path="/admin/:rest*" component={AdminApp} />
+
+        {/* 404 */}
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -73,4 +79,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;
