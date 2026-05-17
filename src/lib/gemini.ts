@@ -1,33 +1,20 @@
 export async function askGemini(prompt: string): Promise<string> {
-  const apiKey = import.meta.env.VITE_HF_API_KEY;
-
-  if (!apiKey) {
-    alert('HF API key not set!');
-    return '';
-  }
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   try {
-    const res = await fetch(
-      'https://api-inference.huggingface.co/models/google/flan-t5-base',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inputs: prompt })
-      }
-    );
+    const res = await fetch(`${supabaseUrl}/functions/v1/ai-generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
     const data = await res.json();
-
     if (data.error) {
-      alert('HF error: ' + data.error);
+      console.error('AI error:', data.error);
       return '';
     }
-
-    return data[0]?.generated_text?.trim() || '';
+    return data.text || '';
   } catch (err: any) {
-    alert('Failed: ' + err.message);
+    console.error('AI failed:', err.message);
     return '';
   }
 }
