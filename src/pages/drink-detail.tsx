@@ -55,7 +55,7 @@ export default function DrinkDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("drinks").select("*, categories(name)").eq("id", id).single()
+    supabase.from("menu_items").select("*, categories(name)").eq("id", id).single()
       .then(({ data }) => setDrink(data));
     fetchReviews();
     supabase.from("drink_likes").select("id", { count: "exact" }).eq("drink_id", id)
@@ -66,15 +66,11 @@ export default function DrinkDetailPage() {
     }
   }, [id, user]);
 
-  // AI benefits — load all at once
   useEffect(() => {
     if (!drink?.ingredients) return;
     const ingredients = drink.ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
     if (ingredients.length === 0) return;
-
     setBenefitsLoading(true);
-
-    // Load all benefits in parallel
     Promise.all(
       ingredients.map(async (ingredient: string) => {
         try {
@@ -121,7 +117,12 @@ export default function DrinkDetailPage() {
       const res = await supabase.from("drink_reviews").update({ rating, comment }).eq("id", existing.id);
       error = res.error;
     } else {
-      const res = await supabase.from("drink_reviews").insert({ drink_id: id, user_id: user!.id, rating, comment });
+      const res = await supabase.from("drink_reviews").insert({
+        drink_id: parseInt(id!),
+        user_id: user!.id,
+        rating,
+        comment
+      });
       error = res.error;
     }
 
@@ -131,7 +132,7 @@ export default function DrinkDetailPage() {
       toast({ title: existing ? "Review updated! ⭐" : "Review submitted! ⭐" });
       setComment("");
       setRating(5);
-      await fetchReviews(); // reload reviews immediately
+      await fetchReviews();
     }
     setSubmitting(false);
   };
@@ -271,7 +272,6 @@ export default function DrinkDetailPage() {
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">Reviews {reviews.length > 0 && `(${reviews.length})`}</h3>
 
-          {/* Write review */}
           <div className="glass-card rounded-xl p-4 border border-border space-y-3">
             <p className="text-sm font-medium">{isAuthenticated ? "Leave a review" : "Sign in to review"}</p>
             <StarRating value={rating} onChange={isAuthenticated ? setRating : undefined} />
@@ -295,7 +295,6 @@ export default function DrinkDetailPage() {
             </div>
           </div>
 
-          {/* All reviews */}
           {reviews.length === 0
             ? <p className="text-sm text-muted-foreground text-center py-4">No reviews yet. Be the first!</p>
             : reviews.map(r => (
