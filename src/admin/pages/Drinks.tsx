@@ -2,7 +2,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Plus, Pencil, Trash2, Sparkles, Upload, X } from 'lucide-react'
 
-const empty = { name: '', description: '', ingredients: '', price: '', category_id: '', is_available: true, image_url: '', is_featured: false, calories: '', protein: '' }
+const empty = {
+  name: '',
+  description: '',
+  ingredients: '',
+  price: '',
+  category_id: '',
+  is_available: true,
+  image_url: '',
+  is_featured: false,
+  calories: '',
+  protein: ''
+}
 
 export default function Drinks() {
   const [drinks, setDrinks] = useState<any[]>([])
@@ -85,6 +96,7 @@ export default function Drinks() {
   const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
     setUploading(true)
 
     const ext = file.name.split('.').pop()
@@ -104,12 +116,14 @@ export default function Drinks() {
 
   const aiGenerate = async (type: 'description' | 'price') => {
     if (!form.name) return alert('Enter drink name first!')
+
     setAiLoading(true)
 
     try {
-      const prompt = type === 'description'
-        ? `Write a short enticing 2-sentence menu description for a premium drink called "${form.name}" sold in Kathmandu Nepal. Sound luxurious. No quotes.`
-        : `Suggest a fair price in Nepali Rupees for a premium drink called "${form.name}" in Kathmandu. Existing prices: ${drinks.slice(0, 5).map(d => `${d.name}: Rs${d.price}`).join(', ')}. Reply with ONLY a number like 350, nothing else.`
+      const prompt =
+        type === 'description'
+          ? `Write a short enticing 2-sentence menu description for a premium drink called "${form.name}" sold in Kathmandu Nepal. Sound luxurious. No quotes.`
+          : `Suggest a fair price in Nepali Rupees for a premium drink called "${form.name}" in Kathmandu. Existing prices: ${drinks.slice(0, 5).map(d => `${d.name}: Rs${d.price}`).join(', ')}. Reply with ONLY a number like 350, nothing else.`
 
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -136,6 +150,7 @@ export default function Drinks() {
 
   return (
     <div>
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold">Drinks Menu</h2>
@@ -168,7 +183,6 @@ export default function Drinks() {
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                placeholder="e.g. Mango Sunrise"
               />
             </div>
 
@@ -180,7 +194,6 @@ export default function Drinks() {
                   value={form.price}
                   onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
                   className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                  placeholder="0"
                 />
                 <button
                   onClick={() => aiGenerate('price')}
@@ -198,7 +211,9 @@ export default function Drinks() {
                 onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
                 <option value="">Select category</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
             </div>
 
@@ -209,7 +224,9 @@ export default function Drinks() {
                 {uploading ? 'Uploading...' : form.image_url ? 'Change photo' : 'Upload photo'}
                 <input type="file" accept="image/*" onChange={uploadImage} className="hidden" />
               </label>
-              {form.image_url && <img src={form.image_url} className="mt-2 w-16 h-16 rounded-lg object-cover" />}
+              {form.image_url && (
+                <img src={form.image_url} className="mt-2 w-16 h-16 rounded-lg object-cover" />
+              )}
             </div>
 
             <div>
@@ -219,7 +236,6 @@ export default function Drinks() {
                 value={form.calories}
                 onChange={e => setForm(f => ({ ...f, calories: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                placeholder="e.g. 250"
               />
             </div>
 
@@ -230,9 +246,10 @@ export default function Drinks() {
                 value={form.protein}
                 onChange={e => setForm(f => ({ ...f, protein: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                placeholder="e.g. 20"
               />
             </div>
+
+            {/* DESCRIPTION */}
 
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-1">
@@ -250,9 +267,10 @@ export default function Drinks() {
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 rows={2}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                placeholder="Describe this drink..."
               />
             </div>
+
+            {/* INGREDIENTS */}
 
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-1">
@@ -261,6 +279,7 @@ export default function Drinks() {
                   comma separated, e.g. mango, milk, honey
                 </span>
               </div>
+
               <input
                 value={form.ingredients || ''}
                 onChange={e => setForm(f => ({ ...f, ingredients: e.target.value }))}
@@ -271,12 +290,20 @@ export default function Drinks() {
 
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                <input type="checkbox" checked={form.is_available} onChange={e => setForm(f => ({ ...f, is_available: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={form.is_available}
+                  onChange={e => setForm(f => ({ ...f, is_available: e.target.checked }))}
+                />
                 Available
               </label>
 
               <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                <input type="checkbox" checked={form.is_featured} onChange={e => setForm(f => ({ ...f, is_featured: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={form.is_featured}
+                  onChange={e => setForm(f => ({ ...f, is_featured: e.target.checked }))}
+                />
                 Featured
               </label>
             </div>
@@ -301,68 +328,6 @@ export default function Drinks() {
         </div>
       )}
 
-      {/* drink cards remain unchanged */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {drinks.length === 0 && (
-          <div className="col-span-3 text-center py-16 text-gray-500">
-            <p className="text-4xl mb-3">🥤</p>
-            <p>No drinks yet. Add your first drink!</p>
-          </div>
-        )}
-
-        {drinks.map(d => (
-          <div key={d.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-all">
-
-            {d.image_url
-              ? <img src={d.image_url} className="w-full h-36 object-cover" />
-              : <div className="w-full h-36 bg-gray-800 flex items-center justify-center text-4xl">🥤</div>
-            }
-
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-1">
-                <h4 className="font-semibold text-white">{d.name}</h4>
-                <span className="text-amber-400 font-bold">Rs {d.price}</span>
-              </div>
-
-              <p className="text-xs text-gray-400 mb-1">
-                {d.categories?.name || 'No category'}
-              </p>
-
-              <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-                {d.description}
-              </p>
-
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${d.is_available ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {d.is_available ? 'Available' : 'Unavailable'}
-                  </span>
-
-                  {d.is_featured &&
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-400">
-                      Featured
-                    </span>
-                  }
-
-                </div>
-
-                <div className="flex gap-2">
-                  <button onClick={() => edit(d)} className="text-gray-400 hover:text-white p-1">
-                    <Pencil size={14} />
-                  </button>
-
-                  <button onClick={() => del(d.id)} className="text-gray-400 hover:text-red-400 p-1">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
