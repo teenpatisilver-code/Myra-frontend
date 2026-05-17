@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cartStore";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { askGemini } from "@/lib/ai";   // <-- add this
 
 export default function DrinkDetailPage() {
   const [, params] = useRoute("/menu/:id");
@@ -20,6 +21,11 @@ export default function DrinkDetailPage() {
   const [comment, setComment] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+
+  /* NEW AI STATES */
+  const [aiBenefits, setAiBenefits] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const { user, isAuthenticated } = useAuth();
   const { addItem } = useCartStore();
@@ -54,7 +60,22 @@ export default function DrinkDetailPage() {
     }
   }, [id, user]);
 
-  /* UPDATED UUID SAFE FUNCTION */
+  /* AI HEALTH BENEFITS FROM INGREDIENTS */
+  useEffect(() => {
+    if (!drink || !drink.ingredients) return;
+
+    setAiLoading(true);
+
+    askGemini(
+      `Short health benefits of these ingredients: ${drink.ingredients}.
+      Give 2-3 short sentences only. No bullet points. No markdown.
+      Sound natural like a menu description, not medical advice.`
+    )
+      .then(setAiBenefits)
+      .catch(() => setAiBenefits(""))
+      .finally(() => setAiLoading(false));
+  }, [drink]);
+
   const toggleLike = async () => {
     if (!isAuthenticated) {
       setLocation("/auth");
@@ -70,12 +91,10 @@ export default function DrinkDetailPage() {
 
       setLiked(false);
     } else {
-      const { error } = await supabase
-        .from("drink_likes")
-        .insert({
-          drink_id: id,
-          user_id: user!.id,
-        });
+      const { error } = await supabase.from("drink_likes").insert({
+        drink_id: id,
+        user_id: user!.id,
+      });
 
       if (error) {
         toast({
@@ -166,6 +185,7 @@ export default function DrinkDetailPage() {
   return (
     <Layout>
       <div className="py-4 space-y-6 pb-24">
+
         <button
           onClick={() => setLocation("/menu")}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -176,20 +196,14 @@ export default function DrinkDetailPage() {
         {/* Image */}
         <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted">
           {drink.image_url ? (
-            <img
-              src={drink.image_url}
-              alt={drink.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={drink.image_url} alt={drink.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-6xl">
-              🥤
-            </div>
+            <div className="w-full h-full flex items-center justify-center text-6xl">🥤</div>
           )}
 
           <button
             onClick={toggleLike}
-            className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center ${
               liked ? "bg-red-500 text-white" : "bg-black/40 text-white"
             }`}
           >
@@ -229,8 +243,58 @@ export default function DrinkDetailPage() {
           )}
         </div>
 
+        {/* HEALTH BENEFITS FROM INGREDIENTS */}
+        {drink.ingredients && (
+          <div className="p-4 border border-border rounded-xl space-y-3 bg-muted/30">
+
+            <h3 className="font-semibold text-sm text-foreground">
+              Health Benefits
+            </h3>
+
+            {/* Ingredients */}
+            <div className="flex flex-wrap gap-2">
+              {drink.ingredients.split(",").map((ing: string) => (
+                <span
+                  key={ing}
+                  className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                >
+                  {ing.trim()}
+                </span>
+              ))}
+            </div>
+
+            {/* AI Text */}
+            {aiLoading ? (
+              <div className="space-y-2">
+                <div className="h-3 bg-muted rounded animate-pulse w-full" />
+                <div className="h-3 bg-muted rounded animate-pulse w-4/5" />
+                <div className="h-3 bg-muted rounded animate-pulse w-3/4" />
+              </div>
+            ) : aiBenefits ? (
+              <>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {expanded
+                    ? aiBenefits
+                    : aiBenefits.slice(0, 150) +
+                      (aiBenefits.length > 150 ? "..." : "")}
+                </p>
+
+                {aiBenefits.length > 150 && (
+                  <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="text-xs text-primary font-medium"
+                  >
+                    {expanded ? "Show less" : "Read more"}
+                  </button>
+                )}
+              </>
+            ) : null}
+          </div>
+        )}
+
         {/* Quantity */}
         <div className="glass-card rounded-2xl p-4 border border-border space-y-3">
+
           <div className="flex items-center justify-between">
             <span className="font-medium">Quantity</span>
 
@@ -260,6 +324,7 @@ export default function DrinkDetailPage() {
             <ShoppingBag className="w-4 h-4 mr-2" />
             Add to Cart • Rs {Math.round(Number(drink.price) * quantity)}
           </Button>
+
         </div>
       </div>
     </Layout>
