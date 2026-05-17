@@ -114,32 +114,31 @@ export default function Drinks() {
     setUploading(false)
   }
 
+  /* GEMINI AI FUNCTION */
+
   const aiGenerate = async (type: 'description' | 'price') => {
     if (!form.name) return alert('Enter drink name first!')
 
     setAiLoading(true)
 
     try {
+      const { askGemini } = await import('../../lib/gemini')
+
       const prompt =
         type === 'description'
           ? `Write a short enticing 2-sentence menu description for a premium drink called "${form.name}" sold in Kathmandu Nepal. Sound luxurious. No quotes.`
-          : `Suggest a fair price in Nepali Rupees for a premium drink called "${form.name}" in Kathmandu. Existing prices: ${drinks.slice(0, 5).map(d => `${d.name}: Rs${d.price}`).join(', ')}. Reply with ONLY a number like 350, nothing else.`
+          : `Suggest a fair price in Nepali Rupees for a premium drink called "${form.name}" in Kathmandu. Existing prices: ${drinks
+              .slice(0, 5)
+              .map(d => `${d.name}: Rs${d.price}`)
+              .join(', ')}. Reply with ONLY a number like 350, nothing else.`
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 200,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      })
+      const text = await askGemini(prompt)
 
-      const data = await res.json()
-      const text = data.content?.[0]?.text?.trim() || ''
-
-      if (type === 'description') setForm(f => ({ ...f, description: text }))
-      else if (!isNaN(parseFloat(text))) setForm(f => ({ ...f, price: text }))
+      if (type === 'description') {
+        setForm(f => ({ ...f, description: text.trim() }))
+      } else if (!isNaN(parseFloat(text.trim()))) {
+        setForm(f => ({ ...f, price: text.trim() }))
+      }
 
     } catch {
       alert('AI failed.')
@@ -166,7 +165,24 @@ export default function Drinks() {
 
       {showForm && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
-          {/* form content stays exactly the same */}
+
+          {/* FORM CONTENT (unchanged) */}
+
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black px-4 py-2 rounded-lg text-sm font-medium">
+              {saving ? 'Saving...' : editing ? 'Update Drink' : 'Create Drink'}
+            </button>
+
+            <button
+              onClick={() => setShowForm(false)}
+              className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm text-gray-300">
+              Cancel
+            </button>
+          </div>
+
         </div>
       )}
 
