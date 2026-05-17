@@ -8,8 +8,7 @@ import { useCartStore } from "@/store/cartStore";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { askGemini } from "@/lib/ai";   // <-- add this
-
+import { askGemini } from "@/lib/gemini";
 export default function DrinkDetailPage() {
   const [, params] = useRoute("/menu/:id");
   const id = params?.id;
