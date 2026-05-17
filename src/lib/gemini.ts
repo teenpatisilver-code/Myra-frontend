@@ -9,14 +9,17 @@ export async function askGemini(prompt: string): Promise<string> {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${supabaseKey}`,
       },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({ prompt: prompt })
     });
-    const data = await res.json();
-    if (data.error) {
-      console.error('AI error:', data.error);
+
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      return data.text || '';
+    } catch {
+      console.error('Parse error:', text);
       return '';
     }
-    return data.text || '';
   } catch (err: any) {
     console.error('AI failed:', err.message);
     return '';
