@@ -36,6 +36,7 @@ export default function DrinkDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [ingredientBenefits, setIngredientBenefits] = useState<Record<string, string>>({});
+  const [benefitsLoading, setBenefitsLoading] = useState(false);
 
   const { user, isAuthenticated } = useAuth();
   const { addItem } = useCartStore();
@@ -54,44 +55,42 @@ export default function DrinkDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-
-    supabase
-      .from("drinks")
-      .select("*, categories(name)")
-      .eq("id", id)
-      .single()
+    supabase.from("drinks").select("*, categories(name)").eq("id", id).single()
       .then(({ data }) => setDrink(data));
-
     fetchReviews();
-
-    // Like count
-    supabase
-      .from("drink_likes")
-      .select("id", { count: "exact" })
-      .eq("drink_id", id)
+    supabase.from("drink_likes").select("id", { count: "exact" }).eq("drink_id", id)
       .then(({ count }) => setLikeCount(count ?? 0));
-
-    // User liked?
     if (user) {
-      supabase
-        .from("drink_likes")
-        .select("id")
-        .eq("drink_id", id)
-        .eq("user_id", user.id)
-        .single()
+      supabase.from("drink_likes").select("id").eq("drink_id", id).eq("user_id", user.id).single()
         .then(({ data }) => setLiked(!!data));
     }
   }, [id, user]);
 
-  // AI ingredient benefits — one per ingredient
+  // AI benefits — load all at once
   useEffect(() => {
     if (!drink?.ingredients) return;
     const ingredients = drink.ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
-    ingredients.forEach(async (ingredient: string) => {
-      const benefit = await askGemini(
-        `In one short sentence (max 12 words), what is the main health benefit of ${ingredient}? No markdown, no bullet points, just the sentence.`
-      );
-      setIngredientBenefits(prev => ({ ...prev, [ingredient]: benefit }));
+    if (ingredients.length === 0) return;
+
+    setBenefitsLoading(true);
+
+    // Load all benefits in parallel
+    Promise.all(
+      ingredients.map(async (ingredient: string) => {
+        try {
+          const benefit = await askGemini(
+            `What is the main health benefit of ${ingredient}? Reply in exactly one sentence, max 12 words. Plain text only.`
+          );
+          return { ingredient, benefit: benefit.trim() };
+        } catch {
+          return { ingredient, benefit: "Supports overall wellbeing and vitality." };
+        }
+      })
+    ).then(results => {
+      const map: Record<string, string> = {};
+      results.forEach(({ ingredient, benefit }) => { map[ingredient] = benefit; });
+      setIngredientBenefits(map);
+      setBenefitsLoading(false);
     });
   }, [drink]);
 
@@ -102,8 +101,7 @@ export default function DrinkDetailPage() {
       setLiked(false);
       setLikeCount(c => c - 1);
     } else {
-      const { error } = await supabase.from("drink_likes").insert({ drink_id: id, user_id: user!.id });
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      await supabase.from("drink_likes").insert({ drink_id: id, user_id: user!.id });
       setLiked(true);
       setLikeCount(c => c + 1);
     }
@@ -114,49 +112,36 @@ export default function DrinkDetailPage() {
     if (!comment.trim()) { toast({ title: "Please write a comment", variant: "destructive" }); return; }
     setSubmitting(true);
 
-    // Check if already reviewed
     const { data: existing } = await supabase
-      .from("drink_reviews")
-      .select("id")
-      .eq("drink_id", id)
-      .eq("user_id", user!.id)
-      .single();
+      .from("drink_reviews").select("id")
+      .eq("drink_id", id).eq("user_id", user!.id).single();
 
+    let error;
     if (existing) {
-      // Update existing review
-      const { error } = await supabase
-        .from("drink_reviews")
-        .update({ rating, comment })
-        .eq("id", existing.id);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); }
-      else { toast({ title: "Review updated! ⭐" }); }
+      const res = await supabase.from("drink_reviews").update({ rating, comment }).eq("id", existing.id);
+      error = res.error;
     } else {
-      // Insert new review
-      const { error } = await supabase
-        .from("drink_reviews")
-        .insert({ drink_id: id, user_id: user!.id, rating, comment });
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); }
-      else { toast({ title: "Review submitted! ⭐" }); }
+      const res = await supabase.from("drink_reviews").insert({ drink_id: id, user_id: user!.id, rating, comment });
+      error = res.error;
     }
 
-    setComment("");
-    setRating(5);
+    if (error) {
+      toast({ title: "Failed to submit review", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: existing ? "Review updated! ⭐" : "Review submitted! ⭐" });
+      setComment("");
+      setRating(5);
+      await fetchReviews(); // reload reviews immediately
+    }
     setSubmitting(false);
-    fetchReviews();
   };
 
   const handleAddToCart = () => {
     if (!drink) return;
     addItem({
-      drinkId: drink.id,
-      drinkName: drink.name,
-      drinkImageUrl: drink.image_url,
-      price: Number(drink.price),
-      quantity,
-      sugarLevel: null,
-      iceLevel: null,
-      toppings: null,
-      notes: null,
+      drinkId: drink.id, drinkName: drink.name,
+      drinkImageUrl: drink.image_url, price: Number(drink.price),
+      quantity, sugarLevel: null, iceLevel: null, toppings: null, notes: null,
     });
     toast({ title: "Added to cart! 🛒", description: `${quantity}x ${drink.name}` });
   };
@@ -172,15 +157,14 @@ export default function DrinkDetailPage() {
   }
 
   const avgRating = reviews.length > 0
-    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-    : null;
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
 
   return (
     <Layout>
       <div className="py-4 space-y-6 pb-24">
 
         <button onClick={() => setLocation("/menu")}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Back to Menu
         </button>
 
@@ -207,11 +191,9 @@ export default function DrinkDetailPage() {
             <h1 className="text-2xl font-bold font-serif">{drink.name}</h1>
             <span className="text-2xl font-bold text-primary">Rs {Math.round(Number(drink.price))}</span>
           </div>
-
           {drink.categories?.name && (
             <span className="text-xs text-secondary font-medium uppercase tracking-wider">{drink.categories.name}</span>
           )}
-
           {avgRating && (
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -219,35 +201,47 @@ export default function DrinkDetailPage() {
               <span className="text-xs text-muted-foreground">({reviews.length} reviews)</span>
             </div>
           )}
-
           {drink.description && (
             <p className="text-muted-foreground text-sm leading-relaxed">{drink.description}</p>
           )}
         </div>
 
-        {/* Health Benefits — per ingredient */}
+        {/* Health Benefits */}
         {drink.ingredients && (
           <div className="p-4 border border-border rounded-xl space-y-3 bg-muted/30">
             <h3 className="font-semibold text-sm text-foreground">Health Benefits</h3>
-            <div className="space-y-2">
-              {drink.ingredients.split(',').map((ing: string) => {
-                const name = ing.trim();
-                return (
-                  <div key={name} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            {benefitsLoading && Object.keys(ingredientBenefits).length === 0 ? (
+              <div className="space-y-3">
+                {drink.ingredients.split(',').map((ing: string) => (
+                  <div key={ing} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
                     <span className="text-base">🌿</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-primary capitalize">{name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                        {ingredientBenefits[name]
-                          ? ingredientBenefits[name]
-                          : <span className="inline-block w-32 h-2.5 bg-muted rounded animate-pulse mt-1" />
-                        }
-                      </p>
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-muted rounded animate-pulse w-20" />
+                      <div className="h-2.5 bg-muted rounded animate-pulse w-full" />
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {drink.ingredients.split(',').map((ing: string) => {
+                  const name = ing.trim();
+                  return (
+                    <div key={name} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <span className="text-base">🌿</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-primary capitalize">{name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          {ingredientBenefits[name] || (
+                            <span className="inline-block w-32 h-2.5 bg-muted rounded animate-pulse mt-1" />
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -287,6 +281,7 @@ export default function DrinkDetailPage() {
                 onChange={e => setComment(e.target.value)}
                 placeholder={isAuthenticated ? "Share your thoughts..." : "Sign in to comment"}
                 disabled={!isAuthenticated}
+                onKeyDown={e => { if (e.key === 'Enter' && isAuthenticated) submitReview(); }}
                 className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
               />
               <Button
@@ -295,12 +290,12 @@ export default function DrinkDetailPage() {
                 size="sm"
                 className="bg-primary text-primary-foreground px-3 h-10"
               >
-                <Send className="w-4 h-4" />
+                {submitting ? "..." : <Send className="w-4 h-4" />}
               </Button>
             </div>
           </div>
 
-          {/* All reviews — visible to everyone */}
+          {/* All reviews */}
           {reviews.length === 0
             ? <p className="text-sm text-muted-foreground text-center py-4">No reviews yet. Be the first!</p>
             : reviews.map(r => (
