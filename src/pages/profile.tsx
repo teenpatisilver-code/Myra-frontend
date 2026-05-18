@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   User, Phone, Mail, MapPin, LogOut, Star,
-  ShoppingBag, ChevronRight, Shield, Save, Bell, Lock
+  ShoppingBag, ChevronRight, Shield, Save, Bell, Lock, Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -15,11 +15,15 @@ export default function ProfilePage() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [loggingOut, setLoggingOut] = useState(false);
   const [editing, setEditing] = useState(false);
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [fullName, setFullName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [points, setPoints] = useState(0);
 
@@ -27,7 +31,7 @@ export default function ProfilePage() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("phone, address, loyalty_points, full_name")
+      .select("phone, address, loyalty_points, full_name, avatar_url")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -36,9 +40,30 @@ export default function ProfilePage() {
           setAddress(data.address || "");
           setPoints(data.loyalty_points || 0);
           setFullName(data.full_name || user?.user_metadata?.name || "");
+          setAvatarUrl(data.avatar_url || "");
         }
       });
   }, [user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingAvatar(true);
+    const ext = file.name.split('.').pop();
+    const path = `avatars/${user.id}.${ext}`;
+    const { error } = await supabase.storage.from('images').upload(path, file, { upsert: true });
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      setUploadingAvatar(false);
+      return;
+    }
+    const { data } = supabase.storage.from('images').getPublicUrl(path);
+    const newUrl = `${data.publicUrl}?t=${Date.now()}`;
+    await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
+    setAvatarUrl(newUrl);
+    toast({ title: "Profile picture updated! 📸" });
+    setUploadingAvatar(false);
+  };
 
   const saveProfile = async () => {
     if (!user) return;
@@ -87,11 +112,31 @@ export default function ProfilePage() {
 
         {/* Profile Header */}
         <div className="glass-card rounded-2xl p-6 flex items-center gap-4 border border-border">
-          <Avatar className="w-16 h-16">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="w-16 h-16">
+              <AvatarImage src={avatarUrl} alt={displayName} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-80 transition-opacity"
+            >
+              {uploadingAvatar
+                ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                : <Camera className="w-3 h-3" />
+              }
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+          </div>
           <div className="flex-1">
             <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
             <p className="text-muted-foreground text-sm flex items-center gap-1">
@@ -131,10 +176,7 @@ export default function ProfilePage() {
         <div className="glass-card rounded-2xl p-5 border border-border space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-foreground">Contact & Delivery</h3>
-            <button
-              onClick={() => setEditing(!editing)}
-              className="text-primary text-sm font-medium"
-            >
+            <button onClick={() => setEditing(!editing)} className="text-primary text-sm font-medium">
               {editing ? "Cancel" : "Edit"}
             </button>
           </div>
@@ -171,11 +213,7 @@ export default function ProfilePage() {
                   className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                 />
               </div>
-              <Button
-                onClick={saveProfile}
-                disabled={saving}
-                className="w-full bg-primary text-primary-foreground"
-              >
+              <Button onClick={saveProfile} disabled={saving} className="w-full bg-primary text-primary-foreground">
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
@@ -194,7 +232,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Settings Section — Saved Addresses removed */}
+        {/* Settings */}
         <div className="glass-card rounded-2xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border">
             <h3 className="font-semibold text-foreground text-sm">Settings</h3>
@@ -223,7 +261,6 @@ export default function ProfilePage() {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
-            {/* Saved Addresses removed here */}
           </div>
         </div>
 
