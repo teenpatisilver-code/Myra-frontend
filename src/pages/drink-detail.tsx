@@ -37,6 +37,7 @@ export default function DrinkDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [ingredientBenefits, setIngredientBenefits] = useState<Record<string, string>>({});
   const [benefitsLoading, setBenefitsLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   const { user, isAuthenticated } = useAuth();
   const { addItem } = useCartStore();
@@ -55,8 +56,11 @@ export default function DrinkDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("menu_items").select("*, categories(name)").eq("id", id).single()
-      .then(({ data }) => setDrink(data));
+    supabase.from("drinks").select("*, categories(name)").eq("id", id).single()
+      .then(({ data, error }) => {
+        if (error || !data) { setNotFound(true); return; }
+        setDrink(data);
+      });
     fetchReviews();
     supabase.from("drink_likes").select("id", { count: "exact" }).eq("drink_id", id)
       .then(({ count }) => setLikeCount(count ?? 0));
@@ -77,7 +81,7 @@ export default function DrinkDetailPage() {
           const benefit = await askGemini(
             `What is the main health benefit of ${ingredient}? Reply in exactly one sentence, max 12 words. Plain text only.`
           );
-          return { ingredient, benefit: benefit.trim() };
+          return { ingredient, benefit: benefit.trim() || "Supports overall wellbeing and vitality." };
         } catch {
           return { ingredient, benefit: "Supports overall wellbeing and vitality." };
         }
@@ -97,9 +101,8 @@ export default function DrinkDetailPage() {
       setLiked(false);
       setLikeCount(c => c - 1);
     } else {
-      await supabase.from("drink_likes").insert({ drink_id: id, user_id: user!.id });
-      setLiked(true);
-      setLikeCount(c => c + 1);
+      const { error } = await supabase.from("drink_likes").insert({ drink_id: id, user_id: user!.id });
+      if (!error) { setLiked(true); setLikeCount(c => c + 1); }
     }
   };
 
@@ -118,7 +121,7 @@ export default function DrinkDetailPage() {
       error = res.error;
     } else {
       const res = await supabase.from("drink_reviews").insert({
-        drink_id: parseInt(id!),
+        drink_id: id,
         user_id: user!.id,
         rating,
         comment
@@ -147,6 +150,20 @@ export default function DrinkDetailPage() {
     toast({ title: "Added to cart! 🛒", description: `${quantity}x ${drink.name}` });
   };
 
+  if (notFound) {
+    return (
+      <Layout>
+        <div className="py-16 text-center space-y-4">
+          <p className="text-4xl">🥤</p>
+          <h2 className="text-xl font-bold">Drink not found</h2>
+          <Button onClick={() => setLocation('/menu')} className="bg-primary text-primary-foreground">
+            Back to Menu
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!drink) {
     return (
       <Layout>
@@ -163,7 +180,6 @@ export default function DrinkDetailPage() {
   return (
     <Layout>
       <div className="py-4 space-y-6 pb-24">
-
         <button onClick={() => setLocation("/menu")}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Back to Menu
@@ -210,37 +226,43 @@ export default function DrinkDetailPage() {
         {/* Health Benefits */}
         {drink.ingredients && (
           <div className="p-4 border border-border rounded-xl space-y-3 bg-muted/30">
-            <h3 className="font-semibold text-sm text-foreground">Health Benefits</h3>
-            {benefitsLoading && Object.keys(ingredientBenefits).length === 0 ? (
-              <div className="space-y-3">
-                {drink.ingredients.split(',').map((ing: string) => (
-                  <div key={ing} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <h3 className="font-semibold text-sm text-foreground">🌿 Health Benefits</h3>
+            <div className="space-y-2">
+              {drink.ingredients.split(',').map((ing: string) => {
+                const name = ing.trim();
+                return (
+                  <div key={name} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
                     <span className="text-base">🌿</span>
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-3 bg-muted rounded animate-pulse w-20" />
-                      <div className="h-2.5 bg-muted rounded animate-pulse w-full" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-primary capitalize">{name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {ingredientBenefits[name] ? ingredientBenefits[name] : (
+                          benefitsLoading
+                            ? <span className="inline-block w-32 h-2.5 bg-muted rounded animate-pulse mt-1" />
+                            : "Supports overall wellbeing."
+                        )}
+                      </p>
                     </div>
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Nutrition */}
+        {(drink.calories || drink.protein) && (
+          <div className="glass-card rounded-xl p-4 border border-border grid grid-cols-2 gap-4">
+            {drink.calories && (
+              <div className="text-center">
+                <p className="text-2xl font-bold">{drink.calories}</p>
+                <p className="text-xs text-muted-foreground">Calories</p>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {drink.ingredients.split(',').map((ing: string) => {
-                  const name = ing.trim();
-                  return (
-                    <div key={name} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                      <span className="text-base">🌿</span>
-                      <div className="flex-1">
-                        <p className="text-xs font-semibold text-primary capitalize">{name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                          {ingredientBenefits[name] || (
-                            <span className="inline-block w-32 h-2.5 bg-muted rounded animate-pulse mt-1" />
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+            )}
+            {drink.protein && (
+              <div className="text-center">
+                <p className="text-2xl font-bold">{drink.protein}g</p>
+                <p className="text-xs text-muted-foreground">Protein</p>
               </div>
             )}
           </div>
@@ -271,7 +293,6 @@ export default function DrinkDetailPage() {
         {/* Reviews */}
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">Reviews {reviews.length > 0 && `(${reviews.length})`}</h3>
-
           <div className="glass-card rounded-xl p-4 border border-border space-y-3">
             <p className="text-sm font-medium">{isAuthenticated ? "Leave a review" : "Sign in to review"}</p>
             <StarRating value={rating} onChange={isAuthenticated ? setRating : undefined} />
@@ -316,7 +337,6 @@ export default function DrinkDetailPage() {
             ))
           }
         </div>
-
       </div>
     </Layout>
   );
