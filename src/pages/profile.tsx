@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   User, Phone, Mail, MapPin, LogOut, Star,
-  ShoppingBag, Settings, ChevronRight, Shield, Save, Bell, Lock
+  ShoppingBag, ChevronRight, Shield, Save, Bell, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -51,7 +51,6 @@ export default function ProfilePage() {
     if (error) {
       toast({ title: "Failed to save", description: error.message, variant: "destructive" });
     } else {
-      // ✅ don't reset state — keep values as-is
       setEditing(false);
       toast({ title: "Profile saved ✅", description: "Your info has been updated." });
     }
@@ -195,7 +194,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Settings Section */}
+        {/* Settings Section — Saved Addresses removed */}
         <div className="glass-card rounded-2xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border">
             <h3 className="font-semibold text-foreground text-sm">Settings</h3>
@@ -224,16 +223,7 @@ export default function ProfilePage() {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
-            <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-primary" />
-                <div className="text-left">
-                  <p className="font-medium text-foreground text-sm">Saved Addresses</p>
-                  <p className="text-xs text-muted-foreground">{address ? "1 address saved" : "No addresses saved"}</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
+            {/* Saved Addresses removed here */}
           </div>
         </div>
 
