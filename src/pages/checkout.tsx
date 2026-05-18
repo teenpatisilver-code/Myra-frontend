@@ -30,7 +30,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     supabase.from('settings').select('value').eq('key', 'delivery_fee').single()
-      .then(({ data }) => { if (data) setDeliveryFee(parseInt(data.value)) })
+      .then(({ data }) => { if (data) setDeliveryFee(parseInt(data.value)) });
   }, []);
 
   const fee = orderType === "delivery" ? deliveryFee : 0;
@@ -38,7 +38,7 @@ export default function CheckoutPage() {
 
   const handleGPS = () => {
     if (!navigator.geolocation) {
-      toast({ title: "GPS not supported", variant: "destructive" });
+      toast({ title: "GPS not supported on this device", variant: "destructive" });
       return;
     }
     setGpsLoading(true);
@@ -47,19 +47,35 @@ export default function CheckoutPage() {
         const { latitude, longitude } = pos.coords;
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
           );
           const data = await res.json();
-          setAddress(data.display_name || `${latitude}, ${longitude}`);
+          const parts = [
+            data.locality,
+            data.city,
+            data.principalSubdivision,
+            data.countryName,
+          ].filter(Boolean);
+          setAddress(parts.length > 0 ? parts.join(", ") : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
         } catch {
           setAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
         }
         setGpsLoading(false);
       },
-      () => {
-        toast({ title: "Could not get location", variant: "destructive" });
+      (err) => {
+        const messages: Record<number, string> = {
+          1: "Location permission denied. Please allow access in your browser settings.",
+          2: "Could not detect your location. Try again.",
+          3: "Location request timed out. Try again.",
+        };
+        toast({
+          title: "Location Error",
+          description: messages[err.code] || "Could not get location.",
+          variant: "destructive",
+        });
         setGpsLoading(false);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
