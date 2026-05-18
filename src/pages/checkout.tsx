@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Phone, ShoppingBag, Bike, Store, UtensilsCrossed, CheckCircle, Dumbbell } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Bike, Store, CheckCircle, Dumbbell, Navigation, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
-type OrderType = "pickup" | "delivery" | "dine_in" | "revolve_fitness";
+type OrderType = "pickup" | "delivery" | "revolve_fitness";
 
 export default function CheckoutPage() {
   const [, setLocation] = useLocation();
@@ -26,14 +26,42 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(100);
+  const [gpsLoading, setGpsLoading] = useState(false);
 
   useEffect(() => {
     supabase.from('settings').select('value').eq('key', 'delivery_fee').single()
       .then(({ data }) => { if (data) setDeliveryFee(parseInt(data.value)) })
-  }, [])
+  }, []);
 
   const fee = orderType === "delivery" ? deliveryFee : 0;
   const total = getTotal() + fee;
+
+  const handleGPS = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "GPS not supported", variant: "destructive" });
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          const data = await res.json();
+          setAddress(data.display_name || `${latitude}, ${longitude}`);
+        } catch {
+          setAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        }
+        setGpsLoading(false);
+      },
+      () => {
+        toast({ title: "Could not get location", variant: "destructive" });
+        setGpsLoading(false);
+      }
+    );
+  };
 
   const handlePlaceOrder = async () => {
     if (!user) { setLocation("/auth"); return; }
@@ -117,12 +145,11 @@ export default function CheckoutPage() {
         {/* Order Type */}
         <div className="space-y-3">
           <Label className="text-sm font-semibold">Order Type</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {[
               { type: "pickup" as OrderType, icon: Store, label: "Pickup", sub: "Free" },
               { type: "delivery" as OrderType, icon: Bike, label: "Delivery", sub: `+Rs ${deliveryFee}` },
               { type: "revolve_fitness" as OrderType, icon: Dumbbell, label: "Revolve Fitness", sub: "Free" },
-              { type: "dine_in" as OrderType, icon: UtensilsCrossed, label: "Dine In", sub: "Free" },
             ].map(({ type, icon: Icon, label, sub }) => (
               <button
                 key={type}
@@ -160,7 +187,19 @@ export default function CheckoutPage() {
               exit={{ opacity: 0, height: 0 }}
               className="space-y-2 overflow-hidden"
             >
-              <Label className="text-sm font-semibold">Delivery Address *</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Delivery Address *</Label>
+                <button
+                  onClick={handleGPS}
+                  disabled={gpsLoading}
+                  className="flex items-center gap-1.5 text-xs text-primary font-medium hover:opacity-70 transition-opacity disabled:opacity-50"
+                >
+                  {gpsLoading
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Locating...</>
+                    : <><Navigation className="w-3.5 h-3.5" /> Use My Location</>
+                  }
+                </button>
+              </div>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                 <textarea
