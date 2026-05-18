@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Plus, Pencil, Trash2, Sparkles, Upload, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Sparkles, Upload, X, Pin, PinOff, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react'
 import { askGemini } from '../../lib/gemini'
 
 type DrinkForm = {
@@ -12,6 +12,7 @@ type DrinkForm = {
   is_available: boolean
   is_featured: boolean
   image_url: string
+  video_url: string
   calories: string
   protein: string
 }
@@ -25,6 +26,7 @@ const empty: DrinkForm = {
   is_available: true,
   is_featured: false,
   image_url: '',
+  video_url: '',
   calories: '',
   protein: '',
 }
@@ -38,6 +40,8 @@ export default function Drinks() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [expandedReviews, setExpandedReviews] = useState<string | null>(null)
+  const [drinkReviews, setDrinkReviews] = useState<Record<string, any[]>>({})
 
   const fetchData = async () => {
     const [d, c] = await Promise.all([
@@ -51,11 +55,43 @@ export default function Drinks() {
 
   useEffect(() => { fetchData() }, [])
 
+  const fetchReviews = async (drinkId: string) => {
+    const { data } = await supabase
+      .from('drink_reviews')
+      .select('*, profiles(full_name, email)')
+      .eq('drink_id', drinkId)
+      .order('created_at', { ascending: false })
+    setDrinkReviews(prev => ({ ...prev, [drinkId]: data || [] }))
+  }
+
+  const toggleReviews = async (drinkId: string) => {
+    if (expandedReviews === drinkId) {
+      setExpandedReviews(null)
+    } else {
+      setExpandedReviews(drinkId)
+      if (!drinkReviews[drinkId]) await fetchReviews(drinkId)
+    }
+  }
+
+  const togglePin = async (reviewId: string, drinkId: string, currentPinned: boolean) => {
+    const { error } = await supabase
+      .from('drink_reviews')
+      .update({ is_pinned: !currentPinned })
+      .eq('id', reviewId)
+    if (error) { alert('Failed to pin review'); return; }
+    await fetchReviews(drinkId)
+  }
+
+  const deleteReview = async (reviewId: string, drinkId: string) => {
+    if (!confirm('Delete this review?')) return
+    await supabase.from('drink_reviews').delete().eq('id', reviewId)
+    await fetchReviews(drinkId)
+  }
+
   const save = async () => {
     const name = form.name?.trim()
     const priceRaw = form.price?.toString().trim()
     const price = parseFloat(priceRaw)
-
     if (!name) { alert('Name is required!'); return }
     if (!priceRaw || isNaN(price) || price <= 0) { alert('Valid price is required!'); return }
 
@@ -69,6 +105,7 @@ export default function Drinks() {
       is_available: Boolean(form.is_available),
       is_featured: Boolean(form.is_featured),
       image_url: form.image_url?.trim() || null,
+      video_url: form.video_url?.trim() || null,
       calories: form.calories !== '' ? parseInt(form.calories) : null,
       protein: form.protein !== '' ? parseFloat(form.protein) : null,
     }
@@ -108,6 +145,7 @@ export default function Drinks() {
       category_id: drink.category_id || '',
       ingredients: drink.ingredients || '',
       description: drink.description || '',
+      video_url: drink.video_url || '',
     })
     setEditing(drink.id)
     setShowForm(true)
@@ -125,6 +163,22 @@ export default function Drinks() {
       setForm(f => ({ ...f, image_url: data.publicUrl }))
     } else {
       alert('Upload failed: ' + error.message)
+    }
+    setUploading(false)
+  }
+
+  const uploadVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `drinks/videos/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('images').upload(path, file)
+    if (!error) {
+      const { data } = supabase.storage.from('images').getPublicUrl(path)
+      setForm(f => ({ ...f, video_url: data.publicUrl }))
+    } else {
+      alert('Video upload failed: ' + error.message)
     }
     setUploading(false)
   }
@@ -227,6 +281,31 @@ export default function Drinks() {
               {form.image_url && (
                 <img src={form.image_url} className="mt-2 w-16 h-16 rounded-lg object-cover" alt="preview" />
               )}
+            </div>
+
+            {/* Video Upload */}
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Video (optional)</label>
+              <label className="flex items-center gap-2 w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-400 cursor-pointer hover:border-amber-500 transition-all">
+                <Upload size={14} />
+                {uploading ? 'Uploading...' : form.video_url ? 'Change video' : 'Upload video'}
+                <input type="file" accept="video/*" onChange={uploadVideo} className="hidden" />
+              </label>
+              {form.video_url && (
+                <p className="text-xs text-green-400 mt-1 truncate">✅ {form.video_url.split('/').pop()}</p>
+              )}
+            </div>
+
+            {/* Video URL (YouTube or direct) */}
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Or paste YouTube / video URL</label>
+              <input
+                type="text"
+                value={form.video_url}
+                onChange={e => setForm(f => ({ ...f, video_url: e.target.value }))}
+                placeholder="https://youtube.com/watch?v=..."
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-amber-500"
+              />
             </div>
 
             {/* Calories */}
@@ -349,9 +428,12 @@ export default function Drinks() {
               <p className="text-xs text-gray-400 mb-1">{d.categories?.name || 'No category'}</p>
               <p className="text-xs text-gray-500 line-clamp-2 mb-1">{d.description}</p>
               {d.ingredients && (
-                <p className="text-xs text-gray-600 mb-3">🌿 {d.ingredients}</p>
+                <p className="text-xs text-gray-600 mb-1">🌿 {d.ingredients}</p>
               )}
-              <div className="flex items-center justify-between">
+              {d.video_url && (
+                <p className="text-xs text-blue-400 mb-2">🎬 Has video</p>
+              )}
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex gap-2">
                   <span className={`px-2 py-0.5 rounded-full text-xs ${d.is_available ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                     {d.is_available ? 'Available' : 'Unavailable'}
@@ -369,6 +451,49 @@ export default function Drinks() {
                   </button>
                 </div>
               </div>
+
+              {/* Reviews toggle */}
+              <button
+                onClick={() => toggleReviews(d.id)}
+                className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-white border border-gray-700 rounded-lg px-3 py-2 transition-colors"
+              >
+                <span className="flex items-center gap-1.5"><MessageSquare size={12} /> Manage Reviews</span>
+                {expandedReviews === d.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+
+              {expandedReviews === d.id && (
+                <div className="mt-2 space-y-2">
+                  {!drinkReviews[d.id] || drinkReviews[d.id].length === 0 ? (
+                    <p className="text-xs text-gray-500 text-center py-2">No reviews yet</p>
+                  ) : drinkReviews[d.id].map(r => (
+                    <div key={r.id} className={`rounded-lg p-3 border text-xs space-y-1 ${r.is_pinned ? 'border-amber-500/40 bg-amber-500/5' : 'border-gray-700 bg-gray-800'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-white">
+                          {r.profiles?.full_name || r.profiles?.email?.split('@')[0] || 'Customer'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-400">{'★'.repeat(r.rating)}</span>
+                          <button
+                            onClick={() => togglePin(r.id, d.id, r.is_pinned)}
+                            className={`p-1 rounded transition-colors ${r.is_pinned ? 'text-amber-400 hover:text-gray-400' : 'text-gray-500 hover:text-amber-400'}`}
+                            title={r.is_pinned ? 'Unpin' : 'Pin to top'}
+                          >
+                            {r.is_pinned ? <PinOff size={12} /> : <Pin size={12} />}
+                          </button>
+                          <button
+                            onClick={() => deleteReview(r.id, d.id)}
+                            className="text-gray-500 hover:text-red-400 p-1"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      {r.comment && <p className="text-gray-400">{r.comment}</p>}
+                      {r.is_pinned && <span className="text-amber-400 font-medium">📌 Pinned</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
