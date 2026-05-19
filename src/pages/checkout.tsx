@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Phone, Bike, Store, UtensilsCrossed, CheckCircle, Dumbbell } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Bike, Store, CheckCircle, Dumbbell, Navigation, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
-type OrderType = "pickup" | "delivery" | "revolve_fitness" | "dine_in";
+type OrderType = "pickup" | "delivery" | "revolve_fitness";
 
 export default function CheckoutPage() {
   const [, setLocation] = useLocation();
@@ -26,14 +26,58 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(100);
+  const [gpsLoading, setGpsLoading] = useState(false);
 
   useEffect(() => {
     supabase.from('settings').select('value').eq('key', 'delivery_fee').single()
-      .then(({ data }) => { if (data) setDeliveryFee(parseInt(data.value) || 100) })
-  }, [])
+      .then(({ data }) => { if (data) setDeliveryFee(parseInt(data.value)) });
+  }, []);
 
   const fee = orderType === "delivery" ? deliveryFee : 0;
   const total = getTotal() + fee;
+
+  const handleGPS = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "GPS not supported on this device", variant: "destructive" });
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          const data = await res.json();
+          const parts = [
+            data.locality,
+            data.city,
+            data.principalSubdivision,
+            data.countryName,
+          ].filter(Boolean);
+          setAddress(parts.length > 0 ? parts.join(", ") : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        } catch {
+          setAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        }
+        setGpsLoading(false);
+      },
+      (err) => {
+        const messages: Record<number, string> = {
+          1: "Location permission denied. Please allow access in your browser settings.",
+          2: "Could not detect your location. Try again.",
+          3: "Location request timed out. Try again.",
+        };
+        toast({
+          title: "Location Error",
+          description: messages[err.code] || "Could not get location.",
+          variant: "destructive",
+        });
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   const handlePlaceOrder = async () => {
     if (!user) { setLocation("/auth"); return; }
@@ -63,9 +107,9 @@ export default function CheckoutPage() {
         .select()
         .single();
 
-      if (error || !order) throw new Error(error?.message || 'Order failed');
+      if (error || !order) throw error;
 
-      const { error: itemsError } = await supabase.from("order_items").insert(
+      await supabase.from("order_items").insert(
         items.map((item) => ({
           order_id: order.id,
           menu_item_id: item.drinkId,
@@ -75,12 +119,10 @@ export default function CheckoutPage() {
         }))
       );
 
-      if (itemsError) throw new Error(itemsError.message);
-
       clearCart();
       setSuccess(true);
-    } catch (err: any) {
-      toast({ title: "Failed to place order", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Failed to place order", description: "Please try again", variant: "destructive" });
     } finally {
       setPlacing(false);
     }
@@ -94,7 +136,7 @@ export default function CheckoutPage() {
             <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-2">
-            <h1 className="text-3xl font-serif font-bold">Order Placed! 🎉</h1>
+            <h1 className="text-3xl font-serif font-bold text-foreground">Order Placed! 🎉</h1>
             <p className="text-muted-foreground">We've received your order and will start preparing it shortly.</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex flex-col gap-3 w-full max-w-xs">
@@ -119,12 +161,11 @@ export default function CheckoutPage() {
         {/* Order Type */}
         <div className="space-y-3">
           <Label className="text-sm font-semibold">Order Type</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {[
               { type: "pickup" as OrderType, icon: Store, label: "Pickup", sub: "Free" },
               { type: "delivery" as OrderType, icon: Bike, label: "Delivery", sub: `+Rs ${deliveryFee}` },
               { type: "revolve_fitness" as OrderType, icon: Dumbbell, label: "Revolve Fitness", sub: "Free" },
-              { type: "dine_in" as OrderType, icon: UtensilsCrossed, label: "Dine In", sub: "Free" },
             ].map(({ type, icon: Icon, label, sub }) => (
               <button
                 key={type}
@@ -162,7 +203,19 @@ export default function CheckoutPage() {
               exit={{ opacity: 0, height: 0 }}
               className="space-y-2 overflow-hidden"
             >
-              <Label className="text-sm font-semibold">Delivery Address *</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Delivery Address *</Label>
+                <button
+                  onClick={handleGPS}
+                  disabled={gpsLoading}
+                  className="flex items-center gap-1.5 text-xs text-primary font-medium hover:opacity-70 transition-opacity disabled:opacity-50"
+                >
+                  {gpsLoading
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Locating...</>
+                    : <><Navigation className="w-3.5 h-3.5" /> Use My Location</>
+                  }
+                </button>
+              </div>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                 <textarea
@@ -173,7 +226,7 @@ export default function CheckoutPage() {
                   className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">💡 Include landmarks for faster delivery</p>
+              <p className="text-xs text-muted-foreground">💡 Tip: Include landmarks for faster delivery</p>
             </motion.div>
           )}
         </AnimatePresence>
