@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from 'wouter'
+import { Switch, Route } from 'wouter'
 import AdminLayout from './AdminLayout'
 import { useAdminGuard } from './hooks/useAdminGuard'
 import Dashboard from './pages/Dashboard'
@@ -7,6 +7,7 @@ import Drinks from './pages/Drinks'
 import Categories from './pages/Categories'
 import Customers from './pages/Customers'
 import Banners from './pages/Banners'
+import Investors from './pages/Investors'
 
 export default function AdminApp() {
   const { loading, isAdmin } = useAdminGuard()
@@ -27,6 +28,7 @@ export default function AdminApp() {
         <Route path="/admin/categories" component={Categories} />
         <Route path="/admin/customers" component={Customers} />
         <Route path="/admin/banners" component={Banners} />
+        <Route path="/admin/investors" component={Investors} />
         <Route path="/admin" component={Dashboard} />
       </Switch>
     </AdminLayout>
