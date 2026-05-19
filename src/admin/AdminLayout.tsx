@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingBag, Coffee,
   Tag, Users, LogOut, Menu, X, Settings, Image, Briefcase
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../lib/supabase'
 
 const nav = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -64,11 +64,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {open && <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setOpen(false)} />}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 bg-gray-900 border-b border-gray-800 flex items-center px-4 gap-4">
-          <button onClick={() => setOpen(!open)} className="lg:hidden text-gray-400 hover:text-white">
+          <button
+            onClick={() => setOpen(!open)}
+            className="lg:hidden text-gray-400 hover:text-white"
+          >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
           <span className="text-sm text-gray-400 ml-auto">Myra Admin Panel</span>
