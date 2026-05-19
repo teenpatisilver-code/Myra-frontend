@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'wouter'
 import {
   LayoutDashboard, ShoppingBag, Coffee,
-  Tag, Users, LogOut, Menu, X, Settings, Image
+  Tag, Users, LogOut, Menu, X, Settings, Image, Briefcase
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -13,6 +13,7 @@ const nav = [
   { href: '/admin/categories', label: 'Categories', icon: Tag },
   { href: '/admin/banners', label: 'Banners', icon: Image },
   { href: '/admin/customers', label: 'Customers', icon: Users },
+  { href: '/admin/investors', label: 'Investors', icon: Briefcase },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
