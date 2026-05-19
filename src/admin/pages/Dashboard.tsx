@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import {
   ShoppingBag, Coffee, Users, TrendingUp, TrendingDown,
-  Sparkles, RefreshCw, Plus, Trash2, DollarSign, AlertTriangle
+  Sparkles, RefreshCw, Plus, Trash2, DollarSign, AlertTriangle, Briefcase
 } from 'lucide-react'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -31,13 +31,19 @@ export default function Dashboard() {
     totalExpenses: 0,
     todayExpenses: 0,
   })
+  const [investmentStats, setInvestmentStats] = useState({
+    totalInvestors: 0,
+    totalInvestment: 0,
+    totalLoans: 0,
+    totalEquity: 0,
+    totalEmployees: 0,
+  })
   const [recentOrders, setRecentOrders] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [aiInsight, setAiInsight] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses'>('overview')
 
-  // New expense form
   const [expForm, setExpForm] = useState({
     title: '', amount: '', category: 'ingredients', date: new Date().toISOString().split('T')[0], notes: ''
   })
@@ -47,24 +53,19 @@ export default function Dashboard() {
   const today = new Date().toISOString().split('T')[0]
 
   const fetchAll = async () => {
-    const [ordersRes, drinksRes, customersRes, expensesRes, recentRes] = await Promise.all([
+    const [ordersRes, drinksRes, customersRes, expensesRes, recentRes, investorsRes] = await Promise.all([
       supabase.from('orders').select('id, total_amount, status, created_at'),
       supabase.from('drinks').select('id', { count: 'exact' }),
       supabase.from('profiles').select('id', { count: 'exact' }),
       supabase.from('expenses').select('*').order('date', { ascending: false }),
       supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(10),
+      supabase.from('investors').select('*'),
     ])
 
     const orders = ordersRes.data || []
-    const completedOrders = orders.filter(o =>
-      ['delivered', 'completed'].includes(o.status)
-    )
-    const todayOrders = orders.filter(o =>
-      o.created_at?.startsWith(today)
-    )
-    const todayCompleted = todayOrders.filter(o =>
-      ['delivered', 'completed'].includes(o.status)
-    )
+    const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.status))
+    const todayOrders = orders.filter(o => o.created_at?.startsWith(today))
+    const todayCompleted = todayOrders.filter(o => ['delivered', 'completed'].includes(o.status))
 
     const allExpenses = expensesRes.data || []
     const todayExp = allExpenses.filter(e => e.date === today)
@@ -78,6 +79,15 @@ export default function Dashboard() {
       todayOrders: todayOrders.length,
       totalExpenses: allExpenses.reduce((s, e) => s + (e.amount || 0), 0),
       todayExpenses: todayExp.reduce((s, e) => s + (e.amount || 0), 0),
+    })
+
+    const inv = investorsRes.data || []
+    setInvestmentStats({
+      totalInvestors: inv.filter(i => i.relationship_type === 'Investor').length,
+      totalInvestment: inv.reduce((s, i) => s + (i.investment_amount || 0), 0),
+      totalLoans: inv.reduce((s, i) => s + (i.loan_amount || 0), 0),
+      totalEquity: inv.reduce((s, i) => s + (i.equity_percentage || 0), 0),
+      totalEmployees: inv.filter(i => i.relationship_type === 'Employee').length,
     })
 
     setExpenses(allExpenses)
@@ -123,7 +133,7 @@ export default function Dashboard() {
           max_tokens: 1000,
           messages: [{
             role: 'user',
-            content: `You are a business analyst for Myra Drinks, a premium drinks app in Kathmandu, Nepal.
+            content: `You are a business analyst for Myra Mocktail Bar, a premium drinks bar in Kathmandu, Nepal.
 Business Stats:
 - Total Orders: ${stats.totalOrders}
 - Today's Orders: ${stats.todayOrders}
@@ -133,8 +143,11 @@ Business Stats:
 - Net Profit: Rs ${profit.toFixed(2)}
 - Menu Items: ${stats.totalDrinks}
 - Total Customers: ${stats.totalCustomers}
+- Total Investment Raised: Rs ${investmentStats.totalInvestment.toFixed(2)}
+- Total Loans: Rs ${investmentStats.totalLoans.toFixed(2)}
+- Equity Distributed: ${investmentStats.totalEquity.toFixed(1)}%
 
-Give 3-4 sentences of smart business insight and 2 specific actionable recommendations to grow profit. Be specific to a Kathmandu drinks business.`
+Give 3-4 sentences of smart business insight and 2 specific actionable recommendations to grow profit. Be specific to a Kathmandu mocktail bar.`
           }]
         })
       })
@@ -146,7 +159,6 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
     setAiLoading(false)
   }
 
-  // Group expenses by category for summary
   const expByCategory = expenses.reduce((acc: any, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount
     return acc
@@ -158,7 +170,7 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Dashboard</h2>
-          <p className="text-gray-400 text-sm">Myra business overview</p>
+          <p className="text-gray-400 text-sm">Myra Mocktail Bar — business overview</p>
         </div>
         <button onClick={fetchAll} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white bg-gray-800 px-3 py-2 rounded-lg">
           <RefreshCw size={14} /> Refresh
@@ -253,6 +265,28 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
             </div>
           </div>
 
+          {/* Investment Summary */}
+          <div className="bg-gray-900 rounded-xl border border-purple-500/30 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Briefcase size={16} className="text-purple-400" />
+              <h3 className="font-semibold text-purple-400 text-sm uppercase tracking-wider">Investment Overview</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { label: 'Total Investors', value: investmentStats.totalInvestors, color: 'text-amber-400' },
+                { label: 'Total Investment', value: `Rs ${investmentStats.totalInvestment.toLocaleString()}`, color: 'text-green-400' },
+                { label: 'Total Loans', value: `Rs ${investmentStats.totalLoans.toLocaleString()}`, color: 'text-red-400' },
+                { label: 'Equity Given', value: `${investmentStats.totalEquity.toFixed(1)}%`, color: 'text-purple-400' },
+                { label: 'Employees', value: investmentStats.totalEmployees, color: 'text-blue-400' },
+              ].map(({ label, value, color }) => (
+                <div key={label}>
+                  <p className="text-xs text-gray-400 mb-1">{label}</p>
+                  <p className={`text-xl font-bold ${color}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* AI Insight */}
           <div className="bg-gray-900 rounded-xl border border-amber-500/30 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -294,7 +328,7 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
               <tbody>
                 {recentOrders.map(order => (
                   <tr key={order.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                    <td className="p-4 font-bold text-amber-400 text-xs font-mono">{String(order.id).slice(0,8)}...</td>
+                    <td className="p-4 font-bold text-amber-400 text-xs font-mono">{String(order.id).slice(0, 8)}...</td>
                     <td className="p-4 text-gray-300 text-xs">{order.phone_number || '—'}</td>
                     <td className="p-4 text-gray-400 text-xs capitalize">{order.order_type?.replace('_', ' ') || 'pickup'}</td>
                     <td className="p-4 text-amber-400 font-medium">Rs {order.total_amount?.toFixed(2)}</td>
@@ -317,7 +351,6 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
 
       {activeTab === 'expenses' && (
         <>
-          {/* Expense Summary */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
               <p className="text-xs text-gray-400 mb-1">Today's Expenses</p>
@@ -335,12 +368,11 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
             </div>
           </div>
 
-          {/* Category Breakdown */}
           {Object.keys(expByCategory).length > 0 && (
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
               <h3 className="font-semibold mb-3 text-sm">Expenses by Category</h3>
               <div className="space-y-2">
-                {Object.entries(expByCategory).sort(([,a],[,b]) => (b as number) - (a as number)).map(([cat, amt]) => (
+                {Object.entries(expByCategory).sort(([, a], [, b]) => (b as number) - (a as number)).map(([cat, amt]) => (
                   <div key={cat} className="flex items-center gap-3">
                     <span className="text-xs text-gray-400 capitalize w-24 shrink-0">{cat}</span>
                     <div className="flex-1 bg-gray-800 rounded-full h-2">
@@ -356,7 +388,6 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
             </div>
           )}
 
-          {/* Add Expense Button */}
           <div className="flex justify-between items-center">
             <h3 className="font-semibold">All Expenses</h3>
             <button
@@ -367,7 +398,6 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
             </button>
           </div>
 
-          {/* Add Expense Form */}
           {showExpForm && (
             <div className="bg-gray-900 rounded-xl border border-gray-700 p-5 space-y-4">
               <h4 className="font-semibold text-sm">New Expense</h4>
@@ -438,7 +468,6 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
             </div>
           )}
 
-          {/* Expenses List */}
           <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="border-b border-gray-800">
