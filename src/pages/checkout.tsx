@@ -1,398 +1,245 @@
-import { useEffect, useState } from "react";
-import { useRoute } from "wouter";
-import { Heart, Star, ArrowLeft, Plus, Minus, ShoppingBag, Send, Share2, Pin } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Layout from "@/components/Layout";
-import { useAuth } from "@/context/AuthContext";
-import { useCartStore } from "@/store/cartStore";
-import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { askGemini } from "@/lib/gemini";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, MapPin, Phone, ShoppingBag, Bike, Store, UtensilsCrossed, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Layout from "@/components/Layout";
+import { useCartStore } from "@/store/cartStore";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
-function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
-  return (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map(s => (
-        <button key={s} onClick={() => onChange?.(s)} type="button"
-          className={onChange ? "cursor-pointer" : "cursor-default"}>
-          <Star className={`w-5 h-5 transition-colors ${s <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />
-        </button>
-      ))}
-    </div>
-  );
-}
+type OrderType = "pickup" | "delivery" | "dine_in";
 
-export default function DrinkDetailPage() {
-  const [, params] = useRoute("/menu/:id");
-  const id = params?.id;
-
-  const [drink, setDrink] = useState<any>(null);
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [submitting, setSubmitting] = useState(false);
-  const [ingredientBenefits, setIngredientBenefits] = useState<Record<string, string>>({});
-  const [benefitsLoading, setBenefitsLoading] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-
-  const { user, isAuthenticated } = useAuth();
-  const { addItem } = useCartStore();
-  const { toast } = useToast();
+export default function CheckoutPage() {
   const [, setLocation] = useLocation();
+  const { items, getTotal, clearCart } = useCartStore();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const fetchReviews = async () => {
-    if (!id) return;
-    const { data } = await supabase
-      .from("drink_reviews")
-      .select("*, profiles(full_name, email)")
-      .eq("drink_id", id)
-      .order("is_pinned", { ascending: false })
-      .order("created_at", { ascending: false });
-    setReviews(data || []);
-  };
+  const [orderType, setOrderType] = useState<OrderType>("pickup");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [placing, setPlacing] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    supabase.from("drinks").select("*, categories(name)").eq("id", id).single()
-      .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); return; }
-        setDrink(data);
-      });
-    fetchReviews();
-    supabase.from("drink_likes").select("id", { count: "exact" }).eq("drink_id", id)
-      .then(({ count }) => setLikeCount(count ?? 0));
-    if (user) {
-      supabase.from("drink_likes").select("id").eq("drink_id", id).eq("user_id", user.id).single()
-        .then(({ data }) => setLiked(!!data));
+  const deliveryFee = orderType === "delivery" ? 100 : 0;
+  const total = getTotal() + deliveryFee;
+
+  const handlePlaceOrder = async () => {
+    if (!user) { setLocation("/auth"); return; }
+    if (items.length === 0) return;
+    if (orderType === "delivery" && !address.trim()) {
+      toast({ title: "Please enter delivery address", variant: "destructive" });
+      return;
     }
-  }, [id, user]);
+    if (!phone.trim()) {
+      toast({ title: "Please enter your phone number", variant: "destructive" });
+      return;
+    }
 
-  useEffect(() => {
-    if (!drink?.ingredients) return;
-    const ingredients = drink.ingredients.split(',').map((i: string) => i.trim()).filter(Boolean);
-    if (ingredients.length === 0) return;
-    setBenefitsLoading(true);
-    Promise.all(
-      ingredients.map(async (ingredient: string) => {
-        try {
-          const benefit = await askGemini(
-            `What is the main health benefit of ${ingredient}? Reply in exactly one sentence, max 12 words. Plain text only.`
-          );
-          return { ingredient, benefit: benefit.trim() || "Supports overall wellbeing and vitality." };
-        } catch {
-          return { ingredient, benefit: "Supports overall wellbeing and vitality." };
-        }
-      })
-    ).then(results => {
-      const map: Record<string, string> = {};
-      results.forEach(({ ingredient, benefit }) => { map[ingredient] = benefit; });
-      setIngredientBenefits(map);
-      setBenefitsLoading(false);
-    });
-  }, [drink]);
+    setPlacing(true);
+    try {
+      const { data: order, error } = await supabase
+        .from("orders")
+        .insert({
+          user_id: user.id,
+          status: "pending",
+          total_amount: total,
+          order_type: orderType,
+          delivery_address: orderType === "delivery" ? address : null,
+          phone_number: phone,
+          notes: notes || null,
+        })
+        .select()
+        .single();
 
-  const toggleLike = async () => {
-    if (!isAuthenticated) { setLocation("/auth"); return; }
-    if (liked) {
-      await supabase.from("drink_likes").delete().eq("drink_id", id).eq("user_id", user!.id);
-      setLiked(false);
-      setLikeCount(c => c - 1);
-    } else {
-      const { error } = await supabase.from("drink_likes").insert({ drink_id: id, user_id: user!.id });
-      if (!error) { setLiked(true); setLikeCount(c => c + 1); }
+      if (error || !order) throw error;
+
+      const orderItems = items.map((item) => ({
+        order_id: order.id,
+        drink_id: item.drinkId,
+        drink_name: item.drinkName,
+        quantity: item.quantity,
+        unit_price: item.price,
+      }));
+
+      await supabase.from("order_items").insert(orderItems);
+      clearCart();
+      setSuccess(true);
+    } catch (err) {
+      toast({ title: "Failed to place order", description: "Please try again", variant: "destructive" });
+    } finally {
+      setPlacing(false);
     }
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    const text = `Check out ${drink?.name} on our menu! 🥤`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: drink?.name, text, url });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Link copied! 📋", description: "Share it with your friends" });
-    }
-  };
-
-  const submitReview = async () => {
-    if (!isAuthenticated) { setLocation("/auth"); return; }
-    if (!comment.trim()) { toast({ title: "Please write a comment", variant: "destructive" }); return; }
-    setSubmitting(true);
-
-    const { data: existing } = await supabase
-      .from("drink_reviews").select("id")
-      .eq("drink_id", id).eq("user_id", user!.id).single();
-
-    let error;
-    if (existing) {
-      const res = await supabase.from("drink_reviews").update({ rating, comment }).eq("id", existing.id);
-      error = res.error;
-    } else {
-      const res = await supabase.from("drink_reviews").insert({
-        drink_id: id, user_id: user!.id, rating, comment
-      });
-      error = res.error;
-    }
-
-    if (error) {
-      toast({ title: "Failed to submit review", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: existing ? "Review updated! ⭐" : "Review submitted! ⭐" });
-      setComment("");
-      setRating(5);
-      await fetchReviews();
-    }
-    setSubmitting(false);
-  };
-
-  const handleAddToCart = () => {
-    if (!drink) return;
-    addItem({
-      drinkId: drink.id, drinkName: drink.name,
-      drinkImageUrl: drink.image_url, price: Number(drink.price),
-      quantity, sugarLevel: null, iceLevel: null, toppings: null, notes: null,
-    });
-    toast({ title: "Added to cart! 🛒", description: `${quantity}x ${drink.name}` });
-  };
-
-  if (notFound) {
+  if (success) {
     return (
-      <Layout>
-        <div className="py-16 text-center space-y-4">
-          <p className="text-4xl">🥤</p>
-          <h2 className="text-xl font-bold">Drink not found</h2>
-          <Button onClick={() => setLocation('/menu')} className="bg-primary text-primary-foreground">
-            Back to Menu
-          </Button>
+      <Layout hideNav>
+        <div className="min-h-[80vh] flex flex-col items-center justify-center text-center space-y-6 py-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          >
+            <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-2"
+          >
+            <h1 className="text-3xl font-serif font-bold">Order Placed!</h1>
+            <p className="text-muted-foreground">We've received your order and will start preparing it shortly.</p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex flex-col gap-3 w-full max-w-xs"
+          >
+            <Button onClick={() => setLocation("/orders")} className="bg-primary text-primary-foreground w-full">
+              Track My Order
+            </Button>
+            <Button variant="ghost" onClick={() => setLocation("/menu")} className="w-full">
+              Order More
+            </Button>
+          </motion.div>
         </div>
       </Layout>
     );
   }
-
-  if (!drink) {
-    return (
-      <Layout>
-        <div className="py-8 text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-        </div>
-      </Layout>
-    );
-  }
-
-  const avgRating = reviews.length > 0
-    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
-
-  const isVideoUrl = (url: string) =>
-    url?.match(/\.(mp4|webm|ogg|mov)$/i) || url?.includes("youtube.com") || url?.includes("youtu.be");
-
-  const getYoutubeEmbed = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : null;
-  };
 
   return (
-    <Layout>
-      <div className="py-4 space-y-6 pb-24">
-        <div className="flex items-center justify-between">
-          <button onClick={() => setLocation("/menu")}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> Back to Menu
-          </button>
-          <button onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm text-primary font-medium hover:opacity-70 transition-opacity">
-            <Share2 className="w-4 h-4" /> Share
-          </button>
-        </div>
+    <Layout hideNav>
+      <div className="py-4 pb-32 max-w-lg mx-auto space-y-6">
+        <button onClick={() => setLocation("/cart")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Back to Cart</span>
+        </button>
 
-        {/* Image or Video */}
-        <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted">
-          {drink.video_url && isVideoUrl(drink.video_url) ? (
-            getYoutubeEmbed(drink.video_url) ? (
-              <iframe
-                src={getYoutubeEmbed(drink.video_url)!}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <video
-                src={drink.video_url}
-                className="w-full h-full object-cover"
-                controls
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
-            )
-          ) : drink.image_url ? (
-            <img src={drink.image_url} alt={drink.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-6xl">🥤</div>
-          )}
-          <button onClick={toggleLike}
-            className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${liked ? "bg-red-500 text-white" : "bg-black/40 text-white"}`}>
-            <Heart className="w-5 h-5" fill={liked ? "white" : "none"} />
-          </button>
-          {likeCount > 0 && (
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-              <Heart className="w-3 h-3 fill-red-400 text-red-400" /> {likeCount}
-            </div>
-          )}
-        </div>
+        <h1 className="text-2xl font-serif font-bold">Checkout</h1>
 
-        {/* If there's both video and image, show image thumbnail below */}
-        {drink.video_url && isVideoUrl(drink.video_url) && drink.image_url && (
-          <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-primary">
-            <img src={drink.image_url} alt={drink.name} className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {/* Info */}
-        <div className="space-y-2">
-          <div className="flex items-start justify-between">
-            <h1 className="text-2xl font-bold font-serif">{drink.name}</h1>
-            <span className="text-2xl font-bold text-primary">Rs {Math.round(Number(drink.price))}</span>
-          </div>
-          {drink.categories?.name && (
-            <span className="text-xs text-secondary font-medium uppercase tracking-wider">{drink.categories.name}</span>
-          )}
-          {avgRating && (
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-              <span className="text-sm font-medium">{avgRating}</span>
-              <span className="text-xs text-muted-foreground">({reviews.length} reviews)</span>
-            </div>
-          )}
-          {drink.description && (
-            <p className="text-muted-foreground text-sm leading-relaxed">{drink.description}</p>
-          )}
-        </div>
-
-        {/* Health Benefits */}
-        {drink.ingredients && (
-          <div className="p-4 border border-border rounded-xl space-y-3 bg-muted/30">
-            <h3 className="font-semibold text-sm text-foreground">🌿 Health Benefits</h3>
-            <div className="space-y-2">
-              {drink.ingredients.split(',').map((ing: string) => {
-                const name = ing.trim();
-                return (
-                  <div key={name} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <span className="text-base">🌿</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-primary capitalize">{name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                        {ingredientBenefits[name] ? ingredientBenefits[name] : (
-                          benefitsLoading
-                            ? <span className="inline-block w-32 h-2.5 bg-muted rounded animate-pulse mt-1" />
-                            : "Supports overall wellbeing."
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Nutrition */}
-        {(drink.calories || drink.protein) && (
-          <div className="glass-card rounded-xl p-4 border border-border grid grid-cols-2 gap-4">
-            {drink.calories && (
-              <div className="text-center">
-                <p className="text-2xl font-bold">{drink.calories}</p>
-                <p className="text-xs text-muted-foreground">Calories</p>
-              </div>
-            )}
-            {drink.protein && (
-              <div className="text-center">
-                <p className="text-2xl font-bold">{drink.protein}g</p>
-                <p className="text-xs text-muted-foreground">Protein</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Quantity + Add to Cart */}
-        <div className="glass-card rounded-2xl p-4 border border-border space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-medium">Quantity</span>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="w-6 text-center font-bold">{quantity}</span>
-              <button onClick={() => setQuantity(q => q + 1)}
-                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <Button onClick={handleAddToCart} className="w-full bg-primary text-primary-foreground h-12 font-semibold">
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            Add to Cart • Rs {Math.round(Number(drink.price) * quantity)}
-          </Button>
-        </div>
-
-        {/* Reviews */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg">Reviews {reviews.length > 0 && `(${reviews.length})`}</h3>
-          <div className="glass-card rounded-xl p-4 border border-border space-y-3">
-            <p className="text-sm font-medium">{isAuthenticated ? "Leave a review" : "Sign in to review"}</p>
-            <StarRating value={rating} onChange={isAuthenticated ? setRating : undefined} />
-            <div className="flex gap-2">
-              <input
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder={isAuthenticated ? "Share your thoughts..." : "Sign in to comment"}
-                disabled={!isAuthenticated}
-                onKeyDown={e => { if (e.key === 'Enter' && isAuthenticated) submitReview(); }}
-                className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-              />
-              <Button
-                onClick={isAuthenticated ? submitReview : () => setLocation("/auth")}
-                disabled={submitting}
-                size="sm"
-                className="bg-primary text-primary-foreground px-3 h-10"
+        {/* Order Type */}
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Order Type</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { type: "pickup" as OrderType, icon: Store, label: "Pickup", sub: "Free" },
+              { type: "delivery" as OrderType, icon: Bike, label: "Delivery", sub: "+Rs 100" },
+              { type: "dine_in" as OrderType, icon: UtensilsCrossed, label: "Dine In", sub: "Free" },
+            ].map(({ type, icon: Icon, label, sub }) => (
+              <button
+                key={type}
+                onClick={() => setOrderType(type)}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                  orderType === type
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/50"
+                }`}
               >
-                {submitting ? "..." : <Send className="w-4 h-4" />}
-              </Button>
+                <Icon className="w-5 h-5" />
+                <span className="text-xs font-semibold">{label}</span>
+                <span className="text-xs opacity-70">{sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Phone */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Phone Number *</Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+977 98XXXXXXXX"
+              className="pl-9 bg-card border-border"
+            />
+          </div>
+        </div>
+
+        {/* Delivery Address */}
+        <AnimatePresence>
+          {orderType === "delivery" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-2 overflow-hidden"
+            >
+              <Label className="text-sm font-semibold">Delivery Address *</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Enter your full delivery address..."
+                  rows={3}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Special Instructions <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Extra ice, no sugar, etc."
+            className="bg-card border-border"
+          />
+        </div>
+
+        {/* Order Summary */}
+        <div className="glass-card rounded-2xl p-5 border border-border space-y-3">
+          <h3 className="font-semibold text-sm">Order Summary</h3>
+          <div className="space-y-2">
+            {items.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{item.drinkName} × {item.quantity}</span>
+                <span>Rs {Math.round(item.price * item.quantity)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-border pt-3 space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Subtotal</span>
+              <span>Rs {Math.round(getTotal())}</span>
+            </div>
+            {deliveryFee > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Delivery Fee</span>
+                <span>Rs {deliveryFee}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-foreground text-base">
+              <span>Total</span>
+              <span className="text-primary">Rs {Math.round(total)}</span>
             </div>
           </div>
+        </div>
 
-          {reviews.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-4">No reviews yet. Be the first!</p>
-            : reviews.map(r => (
-              <div key={r.id} className={`glass-card rounded-xl p-4 border space-y-2 ${r.is_pinned ? "border-primary/40 bg-primary/5" : "border-border"}`}>
-                {r.is_pinned && (
-                  <div className="flex items-center gap-1 text-xs text-primary font-semibold">
-                    <Pin className="w-3 h-3" /> Pinned Review
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                      {(r.profiles?.full_name || r.profiles?.email || "?")[0].toUpperCase()}
-                    </div>
-                    <span className="text-sm font-medium">
-                      {r.profiles?.full_name || r.profiles?.email?.split('@')[0] || "Customer"}
-                    </span>
-                  </div>
-                  <StarRating value={r.rating} />
-                </div>
-                {r.comment && <p className="text-sm text-muted-foreground">{r.comment}</p>}
-                <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
-              </div>
-            ))
-          }
+        {/* Place Order Button */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border">
+          <div className="max-w-lg mx-auto">
+            <Button
+              onClick={handlePlaceOrder}
+              disabled={placing || items.length === 0}
+              className="w-full h-12 bg-primary text-primary-foreground font-semibold text-base"
+            >
+              {placing ? "Placing Order..." : `Place Order · Rs ${Math.round(total)}`}
+            </Button>
+          </div>
         </div>
       </div>
     </Layout>
