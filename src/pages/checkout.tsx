@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Phone, ShoppingBag, Bike, Store, UtensilsCrossed, CheckCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Bike, Store, UtensilsCrossed, CheckCircle, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
-type OrderType = "pickup" | "delivery" | "dine_in";
+type OrderType = "pickup" | "delivery" | "revolve_fitness" | "dine_in";
 
 export default function CheckoutPage() {
   const [, setLocation] = useLocation();
@@ -25,9 +25,15 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState(100);
 
-  const deliveryFee = orderType === "delivery" ? 100 : 0;
-  const total = getTotal() + deliveryFee;
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', 'delivery_fee').single()
+      .then(({ data }) => { if (data) setDeliveryFee(parseInt(data.value) || 100) })
+  }, [])
+
+  const fee = orderType === "delivery" ? deliveryFee : 0;
+  const total = getTotal() + fee;
 
   const handlePlaceOrder = async () => {
     if (!user) { setLocation("/auth"); return; }
@@ -57,21 +63,24 @@ export default function CheckoutPage() {
         .select()
         .single();
 
-      if (error || !order) throw error;
+      if (error || !order) throw new Error(error?.message || 'Order failed');
 
-      const orderItems = items.map((item) => ({
-        order_id: order.id,
-        drink_id: item.drinkId,
-        drink_name: item.drinkName,
-        quantity: item.quantity,
-        unit_price: item.price,
-      }));
+      const { error: itemsError } = await supabase.from("order_items").insert(
+        items.map((item) => ({
+          order_id: order.id,
+          menu_item_id: item.drinkId,
+          drink_name: item.drinkName,
+          quantity: item.quantity,
+          unit_price: item.price,
+        }))
+      );
 
-      await supabase.from("order_items").insert(orderItems);
+      if (itemsError) throw new Error(itemsError.message);
+
       clearCart();
       setSuccess(true);
-    } catch (err) {
-      toast({ title: "Failed to place order", description: "Please try again", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Failed to place order", description: err.message, variant: "destructive" });
     } finally {
       setPlacing(false);
     }
@@ -81,34 +90,16 @@ export default function CheckoutPage() {
     return (
       <Layout hideNav>
         <div className="min-h-[80vh] flex flex-col items-center justify-center text-center space-y-6 py-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          >
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }}>
             <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-2"
-          >
-            <h1 className="text-3xl font-serif font-bold">Order Placed!</h1>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-2">
+            <h1 className="text-3xl font-serif font-bold">Order Placed! 🎉</h1>
             <p className="text-muted-foreground">We've received your order and will start preparing it shortly.</p>
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="flex flex-col gap-3 w-full max-w-xs"
-          >
-            <Button onClick={() => setLocation("/orders")} className="bg-primary text-primary-foreground w-full">
-              Track My Order
-            </Button>
-            <Button variant="ghost" onClick={() => setLocation("/menu")} className="w-full">
-              Order More
-            </Button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex flex-col gap-3 w-full max-w-xs">
+            <Button onClick={() => setLocation("/orders")} className="bg-primary text-primary-foreground w-full">Track My Order</Button>
+            <Button variant="ghost" onClick={() => setLocation("/menu")} className="w-full">Order More</Button>
           </motion.div>
         </div>
       </Layout>
@@ -128,10 +119,11 @@ export default function CheckoutPage() {
         {/* Order Type */}
         <div className="space-y-3">
           <Label className="text-sm font-semibold">Order Type</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {[
               { type: "pickup" as OrderType, icon: Store, label: "Pickup", sub: "Free" },
-              { type: "delivery" as OrderType, icon: Bike, label: "Delivery", sub: "+Rs 100" },
+              { type: "delivery" as OrderType, icon: Bike, label: "Delivery", sub: `+Rs ${deliveryFee}` },
+              { type: "revolve_fitness" as OrderType, icon: Dumbbell, label: "Revolve Fitness", sub: "Free" },
               { type: "dine_in" as OrderType, icon: UtensilsCrossed, label: "Dine In", sub: "Free" },
             ].map(({ type, icon: Icon, label, sub }) => (
               <button
@@ -156,12 +148,8 @@ export default function CheckoutPage() {
           <Label className="text-sm font-semibold">Phone Number *</Label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+977 98XXXXXXXX"
-              className="pl-9 bg-card border-border"
-            />
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)}
+              placeholder="+977 98XXXXXXXX" className="pl-9 bg-card border-border" />
           </div>
         </div>
 
@@ -185,6 +173,7 @@ export default function CheckoutPage() {
                   className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">💡 Include landmarks for faster delivery</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -192,12 +181,8 @@ export default function CheckoutPage() {
         {/* Notes */}
         <div className="space-y-2">
           <Label className="text-sm font-semibold">Special Instructions <span className="text-muted-foreground font-normal">(optional)</span></Label>
-          <Input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Extra ice, no sugar, etc."
-            className="bg-card border-border"
-          />
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)}
+            placeholder="Extra ice, no sugar, etc." className="bg-card border-border" />
         </div>
 
         {/* Order Summary */}
@@ -216,10 +201,10 @@ export default function CheckoutPage() {
               <span>Subtotal</span>
               <span>Rs {Math.round(getTotal())}</span>
             </div>
-            {deliveryFee > 0 && (
+            {fee > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Delivery Fee</span>
-                <span>Rs {deliveryFee}</span>
+                <span>Rs {fee}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-foreground text-base">
@@ -229,14 +214,11 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Place Order Button */}
+        {/* Place Order */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border">
           <div className="max-w-lg mx-auto">
-            <Button
-              onClick={handlePlaceOrder}
-              disabled={placing || items.length === 0}
-              className="w-full h-12 bg-primary text-primary-foreground font-semibold text-base"
-            >
+            <Button onClick={handlePlaceOrder} disabled={placing || items.length === 0}
+              className="w-full h-12 bg-primary text-primary-foreground font-semibold text-base">
               {placing ? "Placing Order..." : `Place Order · Rs ${Math.round(total)}`}
             </Button>
           </div>
