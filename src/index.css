@@ -56,70 +56,72 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Myra — Luxury White & Purple */
+/* Myra — Cherry on Top */
 :root {
 
-  --button-outline: rgba(139, 92, 246, 0.2);
-  --badge-outline: rgba(139, 92, 246, 0.1);
+  --button-outline: rgba(220, 38, 38, 0.2);
+  --badge-outline: rgba(220, 38, 38, 0.1);
   --opaque-button-border-intensity: 9;
 
-  --elevate-1: rgba(139, 92, 246, 0.05);
-  --elevate-2: rgba(139, 92, 246, 0.10);
+  --elevate-1: rgba(220, 38, 38, 0.05);
+  --elevate-2: rgba(220, 38, 38, 0.10);
 
-  --background: 270 30% 98%;
-  --foreground: 270 40% 8%;
+  /* Deep cherry dark background */
+  --background: 350 40% 6%;
+  --foreground: 350 20% 95%;
 
-  --card: 0 0% 100%;
-  --card-foreground: 270 40% 8%;
-  --card-border: 270 20% 90%;
+  --card: 350 35% 9%;
+  --card-foreground: 350 20% 95%;
+  --card-border: 350 30% 15%;
 
-  --sidebar: 270 25% 97%;
-  --sidebar-foreground: 270 40% 8%;
-  --sidebar-border: 270 20% 88%;
+  --sidebar: 350 38% 7%;
+  --sidebar-foreground: 350 20% 95%;
+  --sidebar-border: 350 30% 14%;
 
-  --sidebar-primary: 270 70% 55%;
+  --sidebar-primary: 348 80% 50%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-primary-border: hsl(270 70% 45%);
+  --sidebar-primary-border: hsl(348 80% 40%);
 
-  --sidebar-accent: 270 30% 94%;
-  --sidebar-accent-foreground: 270 40% 8%;
-  --sidebar-accent-border: hsl(270 20% 88%);
+  --sidebar-accent: 350 35% 12%;
+  --sidebar-accent-foreground: 350 20% 95%;
+  --sidebar-accent-border: hsl(350 30% 16%);
 
-  --sidebar-ring: 270 70% 55%;
+  --sidebar-ring: 348 80% 50%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 270 40% 8%;
-  --popover-border: 270 20% 90%;
+  --popover: 350 35% 9%;
+  --popover-foreground: 350 20% 95%;
+  --popover-border: 350 30% 15%;
 
-  --primary: 270 70% 55%;
+  /* Cherry red as primary */
+  --primary: 348 80% 50%;
   --primary-foreground: 0 0% 100%;
-  --primary-border: hsl(270 70% 45%);
+  --primary-border: hsl(348 80% 40%);
 
-  --secondary: 270 40% 75%;
-  --secondary-foreground: 270 40% 8%;
-  --secondary-border: hsl(270 40% 65%);
+  --secondary: 348 50% 65%;
+  --secondary-foreground: 0 0% 100%;
+  --secondary-border: hsl(348 50% 55%);
 
-  --muted: 270 25% 94%;
-  --muted-foreground: 270 20% 50%;
-  --muted-border: hsl(270 20% 88%);
+  --muted: 350 30% 13%;
+  --muted-foreground: 350 15% 55%;
+  --muted-border: hsl(350 25% 18%);
 
-  --accent: 270 70% 55%;
+  --accent: 348 80% 50%;
   --accent-foreground: 0 0% 100%;
-  --accent-border: hsl(270 70% 45%);
+  --accent-border: hsl(348 80% 40%);
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
   --destructive-border: hsl(0 84% 52%);
 
-  --border: 270 20% 88%;
-  --input: 270 20% 88%;
-  --ring: 270 70% 55%;
+  --border: 350 25% 16%;
+  --input: 350 25% 16%;
+  --ring: 348 80% 50%;
 
-  --chart-1: 270 70% 55%;
-  --chart-2: 290 60% 65%;
-  --chart-3: 250 60% 60%;
+  --chart-1: 348 80% 50%;
+  --chart-2: 330 70% 60%;
+  --chart-3: 0 70% 55%;
   --chart-4: 36 100% 55%;
-  --chart-5: 0 84% 60%;
+  --chart-5: 280 60% 60%;
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: 'Playfair Display', serif;
@@ -140,9 +142,9 @@
     -webkit-font-smoothing: antialiased;
 
     background-image:
-      radial-gradient(ellipse at 0% 0%, hsl(270 80% 90% / 0.5) 0%, transparent 40%),
-      radial-gradient(ellipse at 100% 100%, hsl(280 70% 88% / 0.4) 0%, transparent 40%),
-      radial-gradient(ellipse at 50% 50%, hsl(270 60% 96% / 0.3) 0%, transparent 60%);
+      radial-gradient(ellipse at 0% 0%, hsl(348 80% 20% / 0.4) 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 100%, hsl(330 70% 15% / 0.3) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(350 60% 10% / 0.2) 0%, transparent 60%);
 
     background-attachment: fixed;
   }
@@ -170,48 +172,46 @@
   }
 
   .glass {
-    background: rgba(255,255,255,0.75);
+    background: rgba(60, 8, 16, 0.6);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(139,92,246,0.15);
+    border: 1px solid rgba(220, 38, 80, 0.15);
   }
 
   .glass-card {
-    background: rgba(255,255,255,0.85);
+    background: rgba(60, 8, 16, 0.7);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(139,92,246,0.12);
+    border: 1px solid rgba(220, 38, 80, 0.12);
   }
 
   .btn-myra {
-    background: linear-gradient(135deg,#7c3aed,#a855f7);
-    color:white;
-    box-shadow:0 4px 16px rgba(139,92,246,0.4);
-    transition:all .2s ease;
+    background: linear-gradient(135deg, #9b1c2e, #dc2626);
+    color: white;
+    box-shadow: 0 4px 16px rgba(220, 38, 80, 0.4);
+    transition: all .2s ease;
   }
 
   .btn-myra:hover {
-    background: linear-gradient(135deg,#6d28d9,#9333ea);
-    transform:translateY(-1px);
+    background: linear-gradient(135deg, #7f1d1d, #b91c1c);
+    transform: translateY(-1px);
   }
 
   .purple-section {
-    background: linear-gradient(135deg,hsl(270 70% 55%),hsl(280 65% 60%));
+    background: linear-gradient(135deg, hsl(348 80% 35%), hsl(330 70% 40%));
   }
-
-  /* ADDED: Purple primary buttons */
 
   .btn-primary,
   button[class*="bg-primary"] {
-    background: linear-gradient(135deg,#4c1d95,#7c3aed) !important;
-    color:white !important;
-    box-shadow:0 4px 14px rgba(109,40,217,.4);
-    transition:all .2s ease;
+    background: linear-gradient(135deg, #7f1d1d, #dc2626) !important;
+    color: white !important;
+    box-shadow: 0 4px 14px rgba(185, 28, 28, 0.4);
+    transition: all .2s ease;
   }
 
   .btn-primary:hover,
   button[class*="bg-primary"]:hover {
-    background: linear-gradient(135deg,#5b21b6,#8b5cf6) !important;
-    transform:translateY(-1px);
-    box-shadow:0 6px 20px rgba(109,40,217,.5);
+    background: linear-gradient(135deg, #991b1b, #ef4444) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(185, 28, 28, 0.5);
   }
 
 }
