@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingBag, Coffee,
   Tag, Users, LogOut, Menu, X, Settings, Image, Briefcase
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../lib/supabase'
 
 const nav = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
