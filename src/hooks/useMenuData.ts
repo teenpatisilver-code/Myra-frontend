@@ -7,10 +7,11 @@ export interface Category {
   slug: string
   icon?: string | null
   image_url?: string | null
+  emoji?: string | null  // ✅ added
 }
 
 export interface MenuItem {
-  id: string          // ✅ was: number
+  id: string
   name: string
   description?: string | null
   imageUrl?: string | null
@@ -66,7 +67,7 @@ export const useMenuItems = () => {
           .order('sort_order', { ascending: true })
         if (error) throw error
         const mapped = (items ?? []).map((item: any) => ({
-          id: String(item.id),  // ✅ was: item.id
+          id: String(item.id),
           name: item.name,
           description: item.description,
           imageUrl: item.image_url,
@@ -109,7 +110,7 @@ export const useFeaturedMenuItems = () => {
           .order('sort_order', { ascending: true })
         if (error) throw error
         const mapped = (items ?? []).map((item: any) => ({
-          id: String(item.id),  // ✅ was: item.id
+          id: String(item.id),
           name: item.name,
           description: item.description,
           imageUrl: item.image_url,
