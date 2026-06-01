@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Save, Loader2, Store, Bike, Phone, MapPin, Clock, Instagram, Facebook } from 'lucide-react'
+import { Save, Loader2, Store, Bike, Clock, Instagram } from 'lucide-react'
 
 export default function Settings() {
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -33,7 +33,9 @@ export default function Settings() {
 
   if (loading) return (
     <div className="space-y-4">
-      {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-gray-800 animate-pulse" />)}
+      {[1, 2, 3].map(i => (
+        <div key={i} className="h-16 rounded-xl bg-gray-800 animate-pulse" />
+      ))}
     </div>
   )
 
@@ -46,110 +48,157 @@ export default function Settings() {
 
       {/* Order Settings */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-4">
-        <h2 className="text-white font-semibold flex items-center gap-2"><Bike size={16} className="text-amber-400" /> Order Settings</h2>
+        <h2 className="text-white font-semibold flex items-center gap-2">
+          <Bike size={16} className="text-amber-400" /> Order Settings
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Delivery Fee (Rs)</label>
-            <input type="number" value={settings['delivery_fee'] || '100'}
+            <input
+              type="number"
+              value={settings['delivery_fee'] || '100'}
               onChange={e => set('delivery_fee', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="100" />
+              placeholder="100"
+            />
             <p className="text-xs text-gray-600">Fee charged for delivery orders</p>
           </div>
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Min Order Amount (Rs)</label>
-            <input type="number" value={settings['min_order'] || '0'}
+            <input
+              type="number"
+              value={settings['min_order'] || '0'}
               onChange={e => set('min_order', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="0" />
+              placeholder="0"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Loyalty Points Per Order</label>
-            <input type="number" value={settings['loyalty_points_per_order'] || '10'}
+            <input
+              type="number"
+              value={settings['loyalty_points_per_order'] || '10'}
               onChange={e => set('loyalty_points_per_order', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="10" />
+              placeholder="10"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Points to Redeem (min)</label>
-            <input type="number" value={settings['min_redeem_points'] || '500'}
+            <input
+              type="number"
+              value={settings['min_redeem_points'] || '500'}
               onChange={e => set('min_redeem_points', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="500" />
+              placeholder="500"
+            />
           </div>
         </div>
       </div>
 
       {/* Store Info */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-4">
-        <h2 className="text-white font-semibold flex items-center gap-2"><Store size={16} className="text-amber-400" /> Store Info</h2>
+        <h2 className="text-white font-semibold flex items-center gap-2">
+          <Store size={16} className="text-amber-400" /> Store Info
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Store Name</label>
-            <input type="text" value={settings['store_name'] || 'Myra Drinks'}
+            <input
+              type="text"
+              value={settings['store_name'] || 'Myra Drinks'}
               onChange={e => set('store_name', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500" />
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Phone Number</label>
-            <input type="text" value={settings['store_phone'] || ''}
+            <input
+              type="text"
+              value={settings['store_phone'] || ''}
               onChange={e => set('store_phone', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="+977 98XXXXXXXX" />
+              placeholder="+977 98XXXXXXXX"
+            />
           </div>
           <div className="sm:col-span-2 space-y-1">
             <label className="text-xs text-gray-400">Store Address</label>
-            <input type="text" value={settings['store_address'] || ''}
+            <input
+              type="text"
+              value={settings['store_address'] || ''}
               onChange={e => set('store_address', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="Kathmandu, Nepal" />
+              placeholder="Kathmandu, Nepal"
+            />
           </div>
         </div>
       </div>
 
       {/* Opening Hours */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-4">
-        <h2 className="text-white font-semibold flex items-center gap-2"><Clock size={16} className="text-amber-400" /> Opening Hours</h2>
+        <h2 className="text-white font-semibold flex items-center gap-2">
+          <Clock size={16} className="text-amber-400" /> Opening Hours
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Opening Time</label>
-            <input type="time" value={settings['opening_time'] || '08:00'}
+            <input
+              type="time"
+              value={settings['opening_time'] || '08:00'}
               onChange={e => set('opening_time', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500" />
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Closing Time</label>
-            <input type="time" value={settings['closing_time'] || '22:00'}
+            <input
+              type="time"
+              value={settings['closing_time'] || '22:00'}
               onChange={e => set('closing_time', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500" />
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
+            />
           </div>
         </div>
       </div>
 
       {/* Social Media */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-4">
-        <h2 className="text-white font-semibold flex items-center gap-2"><Instagram size={16} className="text-amber-400" /> Social Media</h2>
+        <h2 className="text-white font-semibold flex items-center gap-2">
+          <Instagram size={16} className="text-amber-400" /> Social Media
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Instagram URL</label>
-            <input type="text" value={settings['instagram_url'] || ''}
+            <input
+              type="text"
+              value={settings['instagram_url'] || ''}
               onChange={e => set('instagram_url', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="https://instagram.com/myradrinks" />
+              placeholder="https://instagram.com/myradrinks"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Facebook URL</label>
-            <input type="text" value={settings['facebook_url'] || ''}
+            <input
+              type="text"
+              value={settings['facebook_url'] || ''}
               onChange={e => set('facebook_url', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
-              placeholder="https://facebook.com/myradrinks" />
+              placeholder="https://facebook.com/myradrinks"
+            />
           </div>
         </div>
       </div>
 
-      <button onClick={save} disabled={saving}
-        className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-black rounded-lg text-sm font-semibold hover:bg-amber-400 transition-colors disabled:opacity-50 w-full justify-center">
-        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+      <button
+        onClick={save}
+        disabled={saving}
+        className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-black rounded-lg text-sm font-semibold hover:bg-amber-400 transition-colors disabled:opacity-50 w-full justify-center"
+      >
+        {saving
+          ? <Loader2 className="w-4 h-4 animate-spin" />
+          : <Save className="w-4 h-4" />
+        }
         {saved ? '✅ Saved!' : 'Save All Settings'}
       </button>
     </div>
