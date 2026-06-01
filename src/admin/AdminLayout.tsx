@@ -58,7 +58,6 @@ export default function AdminLayout({
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {nav.map(({ href, label, icon: Icon }) => {
             const isActive = location === href
-
             return (
               <Link key={href} href={href}>
                 <a
@@ -103,7 +102,6 @@ export default function AdminLayout({
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
-
           <span className="text-sm text-gray-400 ml-auto">
             Myra Admin Panel
           </span>
