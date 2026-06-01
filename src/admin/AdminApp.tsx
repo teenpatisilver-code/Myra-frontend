@@ -7,6 +7,8 @@ import Drinks from './pages/Drinks'
 import Categories from './pages/Categories'
 import Customers from './pages/Customers'
 import Investors from './pages/Investors'
+import Ingredients from './pages/Ingredients'
+import Recipes from './pages/Recipes'
 
 export default function AdminApp() {
   const { loading, isAdmin } = useAdminGuard()
@@ -32,6 +34,8 @@ export default function AdminApp() {
         <Route path="/admin/orders" component={Orders} />
         <Route path="/admin/drinks" component={Drinks} />
         <Route path="/admin/categories" component={Categories} />
+        <Route path="/admin/ingredients" component={Ingredients} />
+        <Route path="/admin/recipes" component={Recipes} />
         <Route path="/admin/customers" component={Customers} />
         <Route path="/admin/investors" component={Investors} />
         <Route path="/admin" component={Dashboard} />
