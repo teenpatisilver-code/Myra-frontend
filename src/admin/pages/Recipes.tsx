@@ -16,8 +16,8 @@ export default function Recipes() {
 
   const fetchAll = async () => {
     const [d, i] = await Promise.all([
-      // ✅ fixed: menu_items not drinks
-      supabase.from('menu_items').select('*, categories(name)').order('name'),
+      // ✅ fixed: drinks not menu_items
+      supabase.from('drinks').select('*, categories(name)').order('name'),
       supabase.from('ingredients').select('*').order('name'),
     ])
     setDrinks(d.data || [])
@@ -59,7 +59,7 @@ export default function Recipes() {
     if (!newIng.ingredient_id || !newIng.quantity_used || !selected) return
     setSaving(true)
     await supabase.from('recipe_ingredients').insert({
-      drink_id: selected.id,  // ✅ UUID from menu_items
+      drink_id: selected.id,
       ingredient_id: parseInt(newIng.ingredient_id),
       quantity_used: parseFloat(newIng.quantity_used),
       unit: newIng.unit,
@@ -78,8 +78,8 @@ export default function Recipes() {
   const savePrice = async () => {
     if (!selected) return
     setSaving(true)
-    // ✅ fixed: menu_items not drinks
-    await supabase.from('menu_items').update({
+    // ✅ fixed: drinks not menu_items
+    await supabase.from('drinks').update({
       price: sellingPrice,
       packaging_cost: packagingCost,
     }).eq('id', selected.id)
