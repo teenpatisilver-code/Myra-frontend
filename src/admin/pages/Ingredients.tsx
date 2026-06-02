@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Plus, Pencil, Trash2, X, AlertTriangle } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, AlertTriangle, RefreshCw } from 'lucide-react'
 
 const UNITS = ['g', 'kg', 'ml', 'liter', 'piece']
 const CATEGORIES = ['fruit', 'vegetable', 'protein', 'dairy', 'syrup', 'tea', 'supplement', 'spice', 'other']
@@ -17,19 +17,19 @@ export default function Ingredients() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
-  const [debugMsg, setDebugMsg] = useState('')
+  const [loading, setLoading] = useState(true)
 
-  const fetchIngredients = async () => {
-    const { data, error } = await supabase
+  const fetchIngredients = useCallback(async () => {
+    setLoading(true)
+    const { data } = await supabase
       .from('ingredients')
       .select('*')
       .order('name')
-    // ✅ debug — shows on screen instead of console
-    setDebugMsg(`Count: ${data?.length ?? 0} | Error: ${error ? error.message : 'none'}`)
     setIngredients(data || [])
-  }
+    setLoading(false)
+  }, [])
 
-  useEffect(() => { fetchIngredients() }, [])
+  useEffect(() => { fetchIngredients() }, [fetchIngredients])
 
   const costPerUnit = (ing: any) => {
     const cost = Number(ing.purchase_cost)
@@ -54,22 +54,33 @@ export default function Ingredients() {
       current_stock: parseFloat(form.current_stock) || 0,
       low_stock_threshold: parseFloat(form.low_stock_threshold) || 100,
     }
+
+    let error
     if (editing) {
-      await supabase.from('ingredients').update(payload).eq('id', editing)
+      const res = await supabase.from('ingredients').update(payload).eq('id', editing)
+      error = res.error
     } else {
-      await supabase.from('ingredients').insert(payload)
+      const res = await supabase.from('ingredients').insert(payload)
+      error = res.error
     }
+
+    setSaving(false)
+
+    if (error) {
+      alert('Failed: ' + error.message)
+      return
+    }
+
     setForm(empty)
     setEditing(null)
     setShowForm(false)
-    setSaving(false)
-    fetchIngredients()
+    await fetchIngredients()
   }
 
   const del = async (id: number) => {
     if (!confirm('Delete this ingredient?')) return
     await supabase.from('ingredients').delete().eq('id', id)
-    fetchIngredients()
+    await fetchIngredients()
   }
 
   const edit = (ing: any) => {
@@ -103,20 +114,21 @@ export default function Ingredients() {
             {ingredients.length} ingredients · {lowStock.length} low stock
           </p>
         </div>
-        <button
-          onClick={() => { setForm(empty); setEditing(null); setShowForm(true) }}
-          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg text-sm font-medium"
-        >
-          <Plus size={16} /> Add Ingredient
-        </button>
-      </div>
-
-      {/* ✅ Debug message — shows on screen */}
-      {debugMsg && (
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4 text-xs text-blue-400">
-          🔍 Debug: {debugMsg}
+        <div className="flex gap-2">
+          <button
+            onClick={fetchIngredients}
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white bg-gray-800 px-3 py-2 rounded-lg"
+          >
+            <RefreshCw size={14} /> Refresh
+          </button>
+          <button
+            onClick={() => { setForm(empty); setEditing(null); setShowForm(true) }}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            <Plus size={16} /> Add Ingredient
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Low stock alerts */}
       {lowStock.length > 0 && (
@@ -275,7 +287,13 @@ export default function Ingredients() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(ing => {
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-gray-500">
+                  Loading...
+                </td>
+              </tr>
+            ) : filtered.map(ing => {
               const cpu = costPerUnit(ing)
               const isLow = Number(ing.current_stock) <= Number(ing.low_stock_threshold)
               return (
@@ -311,10 +329,10 @@ export default function Ingredients() {
                 </tr>
               )
             })}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-gray-500">
-                  No ingredients yet. Add your first ingredient!
+                  No ingredients found.
                 </td>
               </tr>
             )}
