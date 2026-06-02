@@ -17,10 +17,15 @@ export default function Ingredients() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [debugMsg, setDebugMsg] = useState('')
 
-  // ✅ renamed from fetch() to avoid conflict with browser fetch API
   const fetchIngredients = async () => {
-    const { data } = await supabase.from('ingredients').select('*').order('name')
+    const { data, error } = await supabase
+      .from('ingredients')
+      .select('*')
+      .order('name')
+    // ✅ debug — shows on screen instead of console
+    setDebugMsg(`Count: ${data?.length ?? 0} | Error: ${error ? error.message : 'none'}`)
     setIngredients(data || [])
   }
 
@@ -58,13 +63,13 @@ export default function Ingredients() {
     setEditing(null)
     setShowForm(false)
     setSaving(false)
-    fetchIngredients() // ✅ fixed
+    fetchIngredients()
   }
 
   const del = async (id: number) => {
     if (!confirm('Delete this ingredient?')) return
     await supabase.from('ingredients').delete().eq('id', id)
-    fetchIngredients() // ✅ fixed
+    fetchIngredients()
   }
 
   const edit = (ing: any) => {
@@ -105,6 +110,13 @@ export default function Ingredients() {
           <Plus size={16} /> Add Ingredient
         </button>
       </div>
+
+      {/* ✅ Debug message — shows on screen */}
+      {debugMsg && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4 text-xs text-blue-400">
+          🔍 Debug: {debugMsg}
+        </div>
+      )}
 
       {/* Low stock alerts */}
       {lowStock.length > 0 && (
