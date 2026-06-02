@@ -187,6 +187,26 @@ export default function Settings() {
               placeholder="https://facebook.com/myradrinks"
             />
           </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-400">YouTube URL</label>
+            <input
+              type="text"
+              value={settings['youtube_url'] || ''}
+              onChange={e => set('youtube_url', e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
+              placeholder="https://youtube.com/@myradrinks"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-400">TikTok URL</label>
+            <input
+              type="text"
+              value={settings['tiktok_url'] || ''}
+              onChange={e => set('tiktok_url', e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500"
+              placeholder="https://tiktok.com/@myradrinks"
+            />
+          </div>
         </div>
       </div>
 
