@@ -17,6 +17,8 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
+const LOGO = "https://pvlvcqdhdwpgmurkqywe.supabase.co/storage/v1/object/public/images/Logo/att.qgHU85Xzobn7nlSvRwTbI8T_CgEW5K8BRgfTk-tBNH4.jpeg"
+
 const nav = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
@@ -30,11 +32,7 @@ const nav = [
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation()
   const [open, setOpen] = useState(false)
 
@@ -50,9 +48,19 @@ export default function AdminLayout({
           open ? 'translate-x-0' : '-translate-x-full'
         } lg:relative lg:translate-x-0`}
       >
-        <div className="p-6 border-b border-gray-800">
-          <h1 className="text-xl font-bold text-amber-400">Myra Admin</h1>
-          <p className="text-xs text-gray-400 mt-1">Control Panel</p>
+        {/* Logo Header */}
+        <div className="p-5 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <img
+              src={LOGO}
+              alt="Myra"
+              className="w-11 h-11 rounded-full object-cover border-2 border-amber-500/40 shadow-lg shadow-purple-900/40"
+            />
+            <div>
+              <h1 className="text-base font-bold text-amber-400 tracking-wide">MYRA</h1>
+              <p className="text-xs text-gray-400">Admin Panel</p>
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -102,9 +110,11 @@ export default function AdminLayout({
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span className="text-sm text-gray-400 ml-auto">
-            Myra Admin Panel
-          </span>
+          <div className="flex items-center gap-2 lg:hidden">
+            <img src={LOGO} alt="Myra" className="w-7 h-7 rounded-full object-cover" />
+            <span className="text-sm font-bold text-amber-400">MYRA</span>
+          </div>
+          <span className="text-sm text-gray-400 ml-auto">Myra Admin Panel</span>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
