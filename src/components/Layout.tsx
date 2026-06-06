@@ -98,42 +98,19 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         )}
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
 
-          {/* Logo cropped to MYRA letters */}
+          {/* Logo — full image no crop */}
           <Link href="/" className="flex items-center group">
-            <div className="relative">
-              {/* Golden glow */}
-              <div
-                className="absolute -inset-2 rounded-xl opacity-30 group-hover:opacity-60 transition-opacity duration-300"
-                style={{
-                  background: "radial-gradient(ellipse, rgba(212,175,55,0.7) 0%, transparent 70%)",
-                  filter: "blur(8px)",
-                }}
-              />
-              {/* Cropped viewport */}
-              <div
-                className="relative overflow-hidden transition-all duration-300 group-hover:scale-105"
-                style={{
-                  width: "100px",
-                  height: "38px",
-                  borderRadius: "6px",
-                  border: "1px solid rgba(212,175,55,0.35)",
-                  boxShadow: "0 0 16px rgba(212,175,55,0.3), 0 0 32px rgba(212,175,55,0.15)",
-                }}
-              >
-                <img
-                  src={LOGO}
-                  alt="Myra"
-                  style={{
-                    width: "170px",
-                    height: "170px",
-                    objectFit: "cover",
-                    position: "absolute",
-                    left: "-18px",
-                    top: "-65px",
-                  }}
-                />
-              </div>
-            </div>
+            <img
+              src={LOGO}
+              alt="Myra"
+              className="transition-transform duration-300 group-hover:scale-105"
+              style={{
+                height: "44px",
+                width: "auto",
+                objectFit: "contain",
+                filter: "drop-shadow(0 0 8px rgba(212,175,55,0.5))",
+              }}
+            />
           </Link>
 
           <div className="flex items-center gap-4">
