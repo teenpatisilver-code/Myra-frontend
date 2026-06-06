@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Zap } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,8 @@ import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+
+const LOGO = "https://pvlvcqdhdwpgmurkqywe.supabase.co/storage/v1/object/public/images/Logo/att.qgHU85Xzobn7nlSvRwTbI8T_CgEW5K8BRgfTk-tBNH4.jpeg"
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -69,9 +71,7 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
+      options: { redirectTo: window.location.origin },
     });
   };
 
@@ -88,12 +88,13 @@ export default function AuthPage() {
           className="w-full max-w-sm space-y-6"
         >
           {/* Logo */}
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4 neon-glow">
-              <Zap className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-3xl font-serif font-bold text-primary neon-text">MYRA</h1>
-            <p className="text-muted-foreground text-sm">Premium Drinks, Kathmandu</p>
+          <div className="flex flex-col items-center">
+            <img
+              src={LOGO}
+              alt="Myra Mocktail Bar"
+              className="w-28 h-28 rounded-full object-cover mb-3 shadow-xl shadow-purple-900/60 border-2 border-purple-800/40"
+            />
+            <p className="text-muted-foreground text-sm">Premium Mocktail Bar, Kathmandu</p>
           </div>
 
           {/* Tabs */}
@@ -112,9 +113,7 @@ export default function AuthPage() {
           {/* Form */}
           <div className="glass-card border border-border rounded-2xl p-5 space-y-4">
             {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                {error}
-              </div>
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
             )}
 
             {mode === "register" && (
@@ -164,14 +163,12 @@ export default function AuthPage() {
               {isSubmitting || loading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
             </Button>
 
-            {/* Divider */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground">or</span>
               <div className="flex-1 h-px bg-border" />
             </div>
 
-            {/* Google Button */}
             <Button
               onClick={handleGoogleLogin}
               variant="outline"
@@ -187,8 +184,7 @@ export default function AuthPage() {
             </Button>
           </div>
 
-          {/* Guest */}
-          <div className="text-center space-y-2">
+          <div className="text-center">
             <Button variant="ghost" onClick={handleGuestCheckout} className="text-muted-foreground hover:text-foreground text-sm">
               Continue as Guest
             </Button>
