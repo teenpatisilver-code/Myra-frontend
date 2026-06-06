@@ -82,7 +82,6 @@ export default function Layout({ children, hideNav }: LayoutProps) {
   return (
     <div className="min-h-screen text-foreground" style={{ background: "#F6F1EB" }}>
 
-      {/* Top bar */}
       <header
         className="sticky top-0 z-40"
         style={{
@@ -99,38 +98,41 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         )}
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
 
-          {/* Logo only — no text */}
+          {/* Logo — cropped to MYRA letters only */}
           <Link href="/" className="flex items-center group">
             <div className="relative">
-              {/* Outer glow ring */}
+              {/* Golden glow behind */}
               <div
-                className="absolute inset-0 rounded-full transition-all duration-300 group-hover:scale-110"
+                className="absolute -inset-2 rounded-xl opacity-30 group-hover:opacity-60 transition-opacity duration-300"
                 style={{
-                  background: "conic-gradient(from 0deg, #D4AF37, #F5D97A, #D4AF37, #A0832A, #D4AF37)",
-                  padding: "2px",
-                  borderRadius: "9999px",
-                  filter: "blur(1px)",
-                  opacity: 0.8,
+                  background: "radial-gradient(ellipse, rgba(212,175,55,0.7) 0%, transparent 70%)",
+                  filter: "blur(8px)",
                 }}
               />
-              {/* Blur glow behind */}
+              {/* Cropped viewport showing just MYRA text */}
               <div
-                className="absolute -inset-1 rounded-full opacity-40 group-hover:opacity-70 transition-opacity duration-300"
+                className="relative overflow-hidden transition-all duration-300 group-hover:scale-105"
                 style={{
-                  background: "radial-gradient(circle, rgba(212,175,55,0.6) 0%, transparent 70%)",
-                  filter: "blur(6px)",
+                  width: "96px",
+                  height: "36px",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(212,175,55,0.35)",
+                  boxShadow: "0 0 16px rgba(212,175,55,0.3), 0 0 32px rgba(212,175,55,0.15)",
                 }}
-              />
-              {/* Logo image */}
-              <img
-                src={LOGO}
-                alt="Myra Mocktail Bar"
-                className="relative w-12 h-12 rounded-full object-cover transition-transform duration-300 group-hover:scale-105"
-                style={{
-                  border: "2px solid #D4AF37",
-                  boxShadow: "0 0 12px rgba(212,175,55,0.6), 0 0 24px rgba(212,175,55,0.3), inset 0 0 8px rgba(212,175,55,0.1)",
-                }}
-              />
+              >
+                <img
+                  src={LOGO}
+                  alt="Myra"
+                  style={{
+                    width: "160px",
+                    height: "160px",
+                    objectFit: "cover",
+                    position: "absolute",
+                    left: "-32px",
+                    top: "-62px",
+                  }}
+                />
+              </div>
             </div>
           </Link>
 
@@ -162,12 +164,10 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="max-w-5xl mx-auto px-4 pb-24 md:pb-8 min-h-[calc(100vh-3.5rem)]">
         {children}
       </main>
 
-      {/* Social media footer */}
       {socialLinks.length > 0 && (
         <div
           className="pb-20 md:pb-4 pt-4 border-t"
@@ -197,7 +197,6 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         </div>
       )}
 
-      {/* Mobile bottom nav */}
       {!hideNav && (
         <nav
           className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
