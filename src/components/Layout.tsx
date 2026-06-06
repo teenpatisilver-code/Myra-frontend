@@ -6,8 +6,6 @@ import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
-const LOGO = "https://pvlvcqdhdwpgmurkqywe.supabase.co/storage/v1/object/public/images/Logo/82BD42E5-9EFD-445A-AB58-A6272AFAD571.jpeg"
-
 interface LayoutProps {
   children: React.ReactNode;
   hideNav?: boolean;
@@ -49,7 +47,6 @@ export default function Layout({ children, hideNav }: LayoutProps) {
   const [location] = useLocation();
   const { items } = useCartStore();
   useAuth();
-
   const [socials, setSocials] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -80,59 +77,75 @@ export default function Layout({ children, hideNav }: LayoutProps) {
   ].filter(s => socials[s.key])
 
   return (
-    <div className="min-h-screen text-foreground" style={{ background: "#F6F1EB" }}>
+    <div className="min-h-screen text-foreground" style={{ backgroundColor: '#F6F1EB' }}>
 
-      <header
-        className="sticky top-0 z-40"
-        style={{
-          background: "linear-gradient(180deg, #5B001E 0%, #3A0014 100%)",
-          boxShadow: "0 4px 24px rgba(91,0,30,0.4)",
-        }}
-      >
+      {/* Top Header */}
+      <header className="sticky top-0 z-40" style={{
+        background: 'linear-gradient(180deg, #5B001E 0%, #3A0014 100%)',
+        boxShadow: '0 4px 24px rgba(58, 0, 20, 0.5), 0 1px 0 rgba(201,168,76,0.15)'
+      }}>
+
+        {/* Cart notification bar */}
         {cartCount > 0 && (
-          <div className="text-xs text-center py-1.5 px-4 font-medium"
-            style={{ background: "rgba(212,175,55,0.15)", color: "#D4AF37" }}>
-            🛒 {cartCount} item{cartCount > 1 ? "s" : ""} in your cart —{" "}
+          <div className="text-xs text-center py-1.5 px-4 font-medium tracking-wide" style={{
+            background: 'rgba(201, 168, 76, 0.12)',
+            color: '#D4AF37',
+            borderBottom: '1px solid rgba(201,168,76,0.15)'
+          }}>
+            🛒 {cartCount} item{cartCount > 1 ? 's' : ''} in your cart —{' '}
             <Link href="/cart" className="underline font-bold">View Cart</Link>
           </div>
         )}
+
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
 
-          {/* Logo — full image no crop */}
-          <Link href="/" className="flex items-center group">
-            <img
-              src={LOGO}
-              alt="Myra"
-              className="transition-transform duration-300 group-hover:scale-105"
-              style={{
-                height: "44px",
-                width: "auto",
-                objectFit: "contain",
-                filter: "drop-shadow(0 0 8px rgba(212,175,55,0.5))",
-              }}
-            />
+          {/* MYRA Logo Text */}
+          <Link href="/" className="flex items-center select-none">
+            <span style={{
+              fontFamily: "'Playfair Display', serif",
+              fontWeight: 900,
+              fontStyle: 'italic',
+              fontSize: '30px',
+              letterSpacing: '0.3em',
+              background: 'linear-gradient(105deg, #8B6914 0%, #C9A84C 20%, #F5DEB3 45%, #E8CC7A 65%, #C9A84C 80%, #8B6914 100%)',
+              backgroundSize: '200% auto',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 1px 8px rgba(201,168,76,0.45))',
+              animation: 'shimmer 4s linear infinite',
+            }}>
+              MYRA
+            </span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
+            {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-6">
               {navItems.map((item) => (
                 <Link key={item.path} href={item.path}
-                  className="text-sm font-medium transition-colors"
-                  style={{ color: location === item.path ? "#D4AF37" : "rgba(255,255,255,0.7)" }}>
+                  className="text-sm font-medium transition-all duration-200"
+                  style={{
+                    color: location === item.path ? '#D4AF37' : 'rgba(245,223,179,0.65)',
+                    fontFamily: "'Inter', sans-serif",
+                    letterSpacing: '0.05em',
+                  }}>
                   {item.label}
                 </Link>
               ))}
             </nav>
+
+            {/* Cart */}
             <Link href="/cart" className="relative">
-              <ShoppingCart
-                className="w-5 h-5"
-                style={{ color: location === "/cart" ? "#D4AF37" : "rgba(255,255,255,0.7)" }}
-              />
+              <ShoppingCart className="w-5 h-5 transition-colors" style={{
+                color: location === "/cart" ? '#D4AF37' : 'rgba(245,223,179,0.75)'
+              }} />
               {cartCount > 0 && (
-                <span
-                  className="absolute -top-2 -right-2 text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                  style={{ background: "#D4AF37", color: "#3A0014" }}
-                >
+                <span className="absolute -top-2 -right-2 text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold" style={{
+                  background: 'linear-gradient(135deg, #C9A84C, #D4AF37)',
+                  color: '#3A0014',
+                  fontSize: '10px'
+                }}>
                   {cartCount > 9 ? "9+" : cartCount}
                 </span>
               )}
@@ -141,32 +154,25 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 pb-24 md:pb-8 min-h-[calc(100vh-3.5rem)]">
+      {/* Main */}
+      <main className="max-w-5xl mx-auto px-4 pb-24 md:pb-8 min-h-[calc(100vh-4rem)]">
         {children}
       </main>
 
+      {/* Social Links Footer */}
       {socialLinks.length > 0 && (
-        <div
-          className="pb-20 md:pb-4 pt-4 border-t"
-          style={{
-            background: "linear-gradient(180deg, #3A0014 0%, #2A000F 100%)",
-            borderColor: "rgba(212,175,55,0.2)",
-          }}
-        >
-          <p className="text-center text-xs mb-3" style={{ color: "rgba(212,175,55,0.6)" }}>
-            Follow us
+        <div className="pb-20 md:pb-6 pt-5 border-t" style={{
+          background: 'linear-gradient(180deg, #3A0014 0%, #2A000F 100%)',
+          borderColor: 'rgba(201,168,76,0.2)',
+        }}>
+          <p className="text-center text-xs mb-3 tracking-widest uppercase" style={{ color: 'rgba(201,168,76,0.5)' }}>
+            Follow Us
           </p>
-          <div className="flex items-center justify-center gap-6">
+          <div className="flex items-center justify-center gap-7">
             {socialLinks.map(s => (
-              <a
-                key={s.key}
-                href={socials[s.key]}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-opacity hover:opacity-100 opacity-70"
-                style={{ color: "#D4AF37" }}
-                aria-label={s.label}
-              >
+              <a key={s.key} href={socials[s.key]} target="_blank" rel="noopener noreferrer"
+                className="transition-all duration-200 hover:opacity-100 hover:scale-110 opacity-60"
+                style={{ color: '#D4AF37' }} aria-label={s.label}>
                 {s.icon}
               </a>
             ))}
@@ -174,47 +180,39 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         </div>
       )}
 
+      {/* Bottom Nav */}
       {!hideNav && (
-        <nav
-          className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
-          style={{
-            background: "linear-gradient(180deg, #4A0019 0%, #2A000F 100%)",
-            boxShadow: "0 -4px 24px rgba(91,0,30,0.5)",
-          }}
-        >
+        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden" style={{
+          background: 'linear-gradient(180deg, #4A0019 0%, #2A000F 100%)',
+          boxShadow: '0 -4px 24px rgba(58,0,20,0.6), 0 -1px 0 rgba(201,168,76,0.12)',
+        }}>
           <div className="flex items-center justify-around h-16 px-2">
             {navItems.map((item) => {
               const isActive = location === item.path;
               return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className="flex flex-col items-center gap-0.5 relative px-3 py-1"
-                >
+                <Link key={item.path} href={item.path}
+                  className="flex flex-col items-center gap-0.5 relative px-3 py-1">
                   <div className="relative">
                     {isActive && (
-                      <div
-                        className="absolute inset-0 rounded-full blur-md"
-                        style={{ background: "rgba(212,175,55,0.3)", transform: "scale(1.8)" }}
-                      />
+                      <div className="absolute inset-0 rounded-full blur-lg" style={{
+                        background: 'rgba(201,168,76,0.25)',
+                        transform: 'scale(2.2)'
+                      }} />
                     )}
-                    <item.icon
-                      className="w-5 h-5 relative z-10 transition-colors"
-                      style={{ color: isActive ? "#D4AF37" : "rgba(255,255,255,0.65)" }}
-                    />
+                    <item.icon className="w-5 h-5 relative z-10 transition-all duration-200"
+                      style={{ color: isActive ? '#D4AF37' : 'rgba(245,223,179,0.5)' }} />
                   </div>
-                  <span
-                    className="text-xs transition-colors font-medium"
-                    style={{ color: isActive ? "#D4AF37" : "rgba(255,255,255,0.65)" }}
-                  >
+                  <span className="text-xs font-medium tracking-wide transition-all duration-200"
+                    style={{
+                      color: isActive ? '#D4AF37' : 'rgba(245,223,179,0.5)',
+                      fontFamily: "'Inter', sans-serif",
+                    }}>
                     {item.label}
                   </span>
                   {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute -top-px left-0 right-0 h-0.5 rounded-b"
-                      style={{ background: "linear-gradient(90deg, transparent, #D4AF37, transparent)" }}
-                    />
+                    <motion.div layoutId="activeTab"
+                      className="absolute -top-px left-2 right-2 h-0.5 rounded-b"
+                      style={{ background: 'linear-gradient(90deg, transparent, #D4AF37, transparent)' }} />
                   )}
                 </Link>
               );
