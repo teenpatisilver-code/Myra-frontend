@@ -98,10 +98,10 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         )}
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
 
-          {/* Logo — cropped to MYRA letters only */}
+          {/* Logo cropped to MYRA letters */}
           <Link href="/" className="flex items-center group">
             <div className="relative">
-              {/* Golden glow behind */}
+              {/* Golden glow */}
               <div
                 className="absolute -inset-2 rounded-xl opacity-30 group-hover:opacity-60 transition-opacity duration-300"
                 style={{
@@ -109,12 +109,12 @@ export default function Layout({ children, hideNav }: LayoutProps) {
                   filter: "blur(8px)",
                 }}
               />
-              {/* Cropped viewport showing just MYRA text */}
+              {/* Cropped viewport */}
               <div
                 className="relative overflow-hidden transition-all duration-300 group-hover:scale-105"
                 style={{
-                  width: "96px",
-                  height: "36px",
+                  width: "100px",
+                  height: "38px",
                   borderRadius: "6px",
                   border: "1px solid rgba(212,175,55,0.35)",
                   boxShadow: "0 0 16px rgba(212,175,55,0.3), 0 0 32px rgba(212,175,55,0.15)",
@@ -124,12 +124,12 @@ export default function Layout({ children, hideNav }: LayoutProps) {
                   src={LOGO}
                   alt="Myra"
                   style={{
-                    width: "160px",
-                    height: "160px",
+                    width: "170px",
+                    height: "170px",
                     objectFit: "cover",
                     position: "absolute",
-                    left: "-32px",
-                    top: "-62px",
+                    left: "-18px",
+                    top: "-65px",
                   }}
                 />
               </div>
