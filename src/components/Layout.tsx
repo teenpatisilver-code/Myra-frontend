@@ -97,24 +97,41 @@ export default function Layout({ children, hideNav }: LayoutProps) {
             <Link href="/cart" className="underline font-bold">View Cart</Link>
           </div>
         )}
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <img
-              src={LOGO}
-              alt="Myra"
-              className="w-9 h-9 rounded-full object-cover border border-amber-500/40 shadow-md shadow-purple-900/50"
-            />
-            <span
-              className="font-serif text-2xl font-bold tracking-widest"
-              style={{
-                color: "#D4AF37",
-                textShadow: "0 0 20px rgba(212,175,55,0.5), 0 0 40px rgba(212,175,55,0.2)",
-                letterSpacing: "0.2em",
-              }}
-            >
-              MYRA
-            </span>
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+
+          {/* Logo only — no text */}
+          <Link href="/" className="flex items-center group">
+            <div className="relative">
+              {/* Outer glow ring */}
+              <div
+                className="absolute inset-0 rounded-full transition-all duration-300 group-hover:scale-110"
+                style={{
+                  background: "conic-gradient(from 0deg, #D4AF37, #F5D97A, #D4AF37, #A0832A, #D4AF37)",
+                  padding: "2px",
+                  borderRadius: "9999px",
+                  filter: "blur(1px)",
+                  opacity: 0.8,
+                }}
+              />
+              {/* Blur glow behind */}
+              <div
+                className="absolute -inset-1 rounded-full opacity-40 group-hover:opacity-70 transition-opacity duration-300"
+                style={{
+                  background: "radial-gradient(circle, rgba(212,175,55,0.6) 0%, transparent 70%)",
+                  filter: "blur(6px)",
+                }}
+              />
+              {/* Logo image */}
+              <img
+                src={LOGO}
+                alt="Myra Mocktail Bar"
+                className="relative w-12 h-12 rounded-full object-cover transition-transform duration-300 group-hover:scale-105"
+                style={{
+                  border: "2px solid #D4AF37",
+                  boxShadow: "0 0 12px rgba(212,175,55,0.6), 0 0 24px rgba(212,175,55,0.3), inset 0 0 8px rgba(212,175,55,0.1)",
+                }}
+              />
+            </div>
           </Link>
 
           <div className="flex items-center gap-4">
@@ -128,10 +145,15 @@ export default function Layout({ children, hideNav }: LayoutProps) {
               ))}
             </nav>
             <Link href="/cart" className="relative">
-              <ShoppingCart className="w-5 h-5" style={{ color: location === "/cart" ? "#D4AF37" : "rgba(255,255,255,0.7)" }} />
+              <ShoppingCart
+                className="w-5 h-5"
+                style={{ color: location === "/cart" ? "#D4AF37" : "rgba(255,255,255,0.7)" }}
+              />
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                  style={{ background: "#D4AF37", color: "#3A0014" }}>
+                <span
+                  className="absolute -top-2 -right-2 text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                  style={{ background: "#D4AF37", color: "#3A0014" }}
+                >
                   {cartCount > 9 ? "9+" : cartCount}
                 </span>
               )}
@@ -177,29 +199,38 @@ export default function Layout({ children, hideNav }: LayoutProps) {
 
       {/* Mobile bottom nav */}
       {!hideNav && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
           style={{
             background: "linear-gradient(180deg, #4A0019 0%, #2A000F 100%)",
             boxShadow: "0 -4px 24px rgba(91,0,30,0.5)",
-          }}>
+          }}
+        >
           <div className="flex items-center justify-around h-16 px-2">
             {navItems.map((item) => {
               const isActive = location === item.path;
               return (
-                <Link key={item.path} href={item.path}
-                  className="flex flex-col items-center gap-0.5 relative px-3 py-1">
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className="flex flex-col items-center gap-0.5 relative px-3 py-1"
+                >
                   <div className="relative">
                     {isActive && (
-                      <div className="absolute inset-0 rounded-full blur-md"
-                        style={{ background: "rgba(212,175,55,0.3)", transform: "scale(1.8)" }} />
+                      <div
+                        className="absolute inset-0 rounded-full blur-md"
+                        style={{ background: "rgba(212,175,55,0.3)", transform: "scale(1.8)" }}
+                      />
                     )}
                     <item.icon
                       className="w-5 h-5 relative z-10 transition-colors"
                       style={{ color: isActive ? "#D4AF37" : "rgba(255,255,255,0.65)" }}
                     />
                   </div>
-                  <span className="text-xs transition-colors font-medium"
-                    style={{ color: isActive ? "#D4AF37" : "rgba(255,255,255,0.65)" }}>
+                  <span
+                    className="text-xs transition-colors font-medium"
+                    style={{ color: isActive ? "#D4AF37" : "rgba(255,255,255,0.65)" }}
+                  >
                     {item.label}
                   </span>
                   {isActive && (
