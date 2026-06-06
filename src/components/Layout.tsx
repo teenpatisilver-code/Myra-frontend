@@ -6,12 +6,13 @@ import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
+const LOGO = "https://pvlvcqdhdwpgmurkqywe.supabase.co/storage/v1/object/public/images/Logo/att.qgHU85Xzobn7nlSvRwTbI8T_CgEW5K8BRgfTk-tBNH4.jpeg"
+
 interface LayoutProps {
   children: React.ReactNode;
   hideNav?: boolean;
 }
 
-// Social media SVG icons since lucide doesn't have TikTok/YouTube
 function InstagramIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -97,7 +98,13 @@ export default function Layout({ children, hideNav }: LayoutProps) {
           </div>
         )}
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5">
+            <img
+              src={LOGO}
+              alt="Myra"
+              className="w-9 h-9 rounded-full object-cover border border-amber-500/40 shadow-md shadow-purple-900/50"
+            />
             <span
               className="font-serif text-2xl font-bold tracking-widest"
               style={{
@@ -109,6 +116,7 @@ export default function Layout({ children, hideNav }: LayoutProps) {
               MYRA
             </span>
           </Link>
+
           <div className="flex items-center gap-4">
             <nav className="hidden md:flex items-center gap-6">
               {navItems.map((item) => (
@@ -137,7 +145,7 @@ export default function Layout({ children, hideNav }: LayoutProps) {
         {children}
       </main>
 
-      {/* Social media footer — only shows if links are set in admin */}
+      {/* Social media footer */}
       {socialLinks.length > 0 && (
         <div
           className="pb-20 md:pb-4 pt-4 border-t"
