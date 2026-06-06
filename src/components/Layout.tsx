@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
-const LOGO = "https://pvlvcqdhdwpgmurkqywe.supabase.co/storage/v1/object/public/images/Logo/att.qgHU85Xzobn7nlSvRwTbI8T_CgEW5K8BRgfTk-tBNH4.jpeg"
+const LOGO = "https://pvlvcqdhdwpgmurkqywe.supabase.co/storage/v1/object/public/images/Logo/82BD42E5-9EFD-445A-AB58-A6272AFAD571.jpeg"
 
 interface LayoutProps {
   children: React.ReactNode;
