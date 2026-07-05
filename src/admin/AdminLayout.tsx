@@ -14,6 +14,8 @@ import {
   Briefcase,
   FlaskConical,
   BookOpen,
+  Monitor,
+  ChefHat,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -26,6 +28,8 @@ const nav = [
   { href: '/admin/categories', label: 'Categories', icon: Tag },
   { href: '/admin/ingredients', label: 'Ingredients', icon: FlaskConical },
   { href: '/admin/recipes', label: 'Recipes', icon: BookOpen },
+  { href: '/admin/pos', label: 'POS', icon: Monitor },
+  { href: '/admin/kitchen', label: 'Kitchen', icon: ChefHat },
   { href: '/admin/banners', label: 'Banners', icon: Image },
   { href: '/admin/customers', label: 'Customers', icon: Users },
   { href: '/admin/investors', label: 'Investors', icon: Briefcase },
