@@ -11,6 +11,8 @@ import Ingredients from './pages/Ingredients'
 import Recipes from './pages/Recipes'
 import Banners from './pages/Banners'
 import Settings from './pages/Settings'
+import Pos from './pages/Pos'
+import Kitchen from './pages/Kitchen'
 
 export default function AdminApp() {
   const { loading, isAdmin } = useAdminGuard()
@@ -38,6 +40,8 @@ export default function AdminApp() {
         <Route path="/admin/categories" component={Categories} />
         <Route path="/admin/ingredients" component={Ingredients} />
         <Route path="/admin/recipes" component={Recipes} />
+        <Route path="/admin/pos" component={Pos} />
+        <Route path="/admin/kitchen" component={Kitchen} />
         <Route path="/admin/customers" component={Customers} />
         <Route path="/admin/investors" component={Investors} />
         <Route path="/admin/banners" component={Banners} />
