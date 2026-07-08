@@ -84,7 +84,7 @@ export default function Pos() {
       const { error: itemsError } = await supabase.from('order_items').insert(
         cart.map(i => ({
           order_id: order.id,
-          drink_id: i.id,
+          menu_item_id: i.id,
           drink_name: i.name,
           quantity: i.qty,
           unit_price: Number(i.price),
