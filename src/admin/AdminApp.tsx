@@ -13,6 +13,7 @@ import Banners from './pages/Banners'
 import Settings from './pages/Settings'
 import Pos from './pages/Pos'
 import Kitchen from './pages/Kitchen'
+import DrinkTracker from './pages/DrinkTracker'
 
 export default function AdminApp() {
   const { loading, isAdmin } = useAdminGuard()
@@ -46,6 +47,7 @@ export default function AdminApp() {
         <Route path="/admin/investors" component={Investors} />
         <Route path="/admin/banners" component={Banners} />
         <Route path="/admin/settings" component={Settings} />
+        <Route path="/admin/tracker" component={DrinkTracker} />
         <Route path="/admin" component={Dashboard} />
       </Switch>
     </AdminLayout>
