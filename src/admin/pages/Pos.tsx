@@ -81,7 +81,7 @@ export default function Pos() {
 
       if (error || !order) throw error
 
-      await supabase.from('order_items').insert(
+      const { error: itemsError } = await supabase.from('order_items').insert(
         cart.map(i => ({
           order_id: order.id,
           drink_id: i.id,
@@ -92,12 +92,19 @@ export default function Pos() {
         }))
       )
 
+      if (itemsError) {
+        console.error('order_items insert failed:', itemsError)
+        await supabase.from('orders').delete().eq('id', order.id)
+        throw itemsError
+      }
+
       setLastOrder({ ...order, items: cart, change, discountAmt })
       setSuccess(true)
       clearCart()
       setCashReceived('')
-    } catch {
-      alert('Failed to place order.')
+    } catch (err) {
+      console.error('placeOrder failed:', err)
+      alert('Failed to place order. Open browser console (F12) and screenshot the red error for me.')
     } finally {
       setPlacing(false)
     }
