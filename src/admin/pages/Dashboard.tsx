@@ -39,7 +39,7 @@ function PopularDrinks() {
       </div>
       <div className="divide-y divide-gray-800">
         {drinks.map((d, i) => (
-          <div key={d.drink_id} className="flex items-center gap-4 p-4 hover:bg-gray-800/30">
+          <div key={d.menu_item_id} className="flex items-center gap-4 p-4 hover:bg-gray-800/30">
             <span className={`text-lg font-black w-8 text-center ${
               i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-700' : 'text-gray-600'
             }`}>
