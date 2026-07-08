@@ -79,7 +79,14 @@ export default function Pos() {
         notes: customerName ? `Customer: ${customerName}` : null,
       }).select().single()
 
-      if (error || !order) throw error
+      if (error) {
+        alert('ORDER INSERT FAILED:\n' + JSON.stringify(error, null, 2))
+        throw error
+      }
+      if (!order) {
+        alert('Order insert returned no data.')
+        throw new Error('No order returned')
+      }
 
       const { error: itemsError } = await supabase.from('order_items').insert(
         cart.map(i => ({
@@ -93,7 +100,7 @@ export default function Pos() {
       )
 
       if (itemsError) {
-        console.error('order_items insert failed:', itemsError)
+        alert('ORDER_ITEMS INSERT FAILED:\n' + JSON.stringify(itemsError, null, 2))
         await supabase.from('orders').delete().eq('id', order.id)
         throw itemsError
       }
@@ -102,9 +109,11 @@ export default function Pos() {
       setSuccess(true)
       clearCart()
       setCashReceived('')
-    } catch (err) {
+    } catch (err: any) {
       console.error('placeOrder failed:', err)
-      alert('Failed to place order. Open browser console (F12) and screenshot the red error for me.')
+      if (!err?.message && !err?.code) {
+        alert('Failed to place order (unknown error): ' + JSON.stringify(err, null, 2))
+      }
     } finally {
       setPlacing(false)
     }
