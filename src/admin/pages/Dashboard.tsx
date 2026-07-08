@@ -21,6 +21,49 @@ const EXPENSE_CATEGORIES = [
   'packaging', 'marketing', 'equipment', 'other'
 ]
 
+function PopularDrinks() {
+  const [drinks, setDrinks] = useState<any[]>([])
+
+  useEffect(() => {
+    supabase.from('drink_popularity').select('*').limit(10)
+      .then(({ data }) => setDrinks(data || []))
+  }, [])
+
+  if (drinks.length === 0) return null
+
+  return (
+    <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+      <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+        <h3 className="font-semibold">🏆 Most Popular Drinks</h3>
+        <span className="text-xs text-gray-400">by units sold</span>
+      </div>
+      <div className="divide-y divide-gray-800">
+        {drinks.map((d, i) => (
+          <div key={d.drink_id} className="flex items-center gap-4 p-4 hover:bg-gray-800/30">
+            <span className={`text-lg font-black w-8 text-center ${
+              i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-700' : 'text-gray-600'
+            }`}>
+              #{i + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium text-sm truncate">{d.drink_name}</p>
+              <p className="text-gray-500 text-xs">{d.total_orders} orders</p>
+            </div>
+            <div className="text-right">
+              <p className="text-amber-400 font-bold text-sm">{d.total_sold} sold</p>
+              <p className="text-gray-500 text-xs">Rs {Math.round(d.total_revenue || 0)}</p>
+            </div>
+            <div className="w-20 bg-gray-800 rounded-full h-1.5">
+              <div className="bg-amber-500 h-1.5 rounded-full"
+                style={{ width: `${drinks[0]?.total_sold ? (d.total_sold / drinks[0].total_sold) * 100 : 0}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -348,6 +391,9 @@ Give 3-4 sentences of smart business insight and 2 specific actionable recommend
               </tbody>
             </table>
           </div>
+
+          {/* Most Popular Drinks */}
+          <PopularDrinks />
         </>
       )}
 
