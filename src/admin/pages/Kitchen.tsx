@@ -29,7 +29,7 @@ export default function Kitchen() {
           id,
           quantity,
           drink_name,
-          drink_id,
+          menu_item_id,
           unit_price,
           drinks (name)
         )
@@ -43,7 +43,7 @@ export default function Kitchen() {
       ...order,
       order_items: (order.order_items || []).map((item: any) => ({
         ...item,
-        display_name: item.drink_name || item.drinks?.name || `Drink #${item.drink_id}`,
+        display_name: item.drink_name || item.drinks?.name || `Drink #${item.menu_item_id}`,
       }))
     }))
 
@@ -60,7 +60,7 @@ export default function Kitchen() {
   const fetchDeletedOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select(`*, order_items(id, quantity, drink_name, drink_id, drinks(name))`)
+      .select(`*, order_items(id, quantity, drink_name, menu_item_id, drinks(name))`)
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false })
       .limit(20)
@@ -69,7 +69,7 @@ export default function Kitchen() {
       ...order,
       order_items: (order.order_items || []).map((item: any) => ({
         ...item,
-        display_name: item.drink_name || item.drinks?.name || `Drink #${item.drink_id}`,
+        display_name: item.drink_name || item.drinks?.name || `Drink #${item.menu_item_id}`,
       }))
     }))
 
