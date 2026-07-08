@@ -112,7 +112,7 @@ export default function CheckoutPage() {
       const { error: itemsError } = await supabase.from("order_items").insert(
         items.map((item) => ({
           order_id: order.id,
-          drink_id: item.drinkId,
+          menu_item_id: item.drinkId,
           drink_name: item.drinkName,
           quantity: item.quantity,
           unit_price: item.price,
