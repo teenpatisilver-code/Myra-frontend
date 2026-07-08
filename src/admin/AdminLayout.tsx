@@ -16,6 +16,7 @@ import {
   BookOpen,
   Monitor,
   ChefHat,
+  Trophy,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -30,6 +31,7 @@ const nav = [
   { href: '/admin/recipes', label: 'Recipes', icon: BookOpen },
   { href: '/admin/pos', label: 'POS', icon: Monitor },
   { href: '/admin/kitchen', label: 'Kitchen', icon: ChefHat },
+  { href: '/admin/tracker', label: 'Leaderboard', icon: Trophy },
   { href: '/admin/banners', label: 'Banners', icon: Image },
   { href: '/admin/customers', label: 'Customers', icon: Users },
   { href: '/admin/investors', label: 'Investors', icon: Briefcase },
