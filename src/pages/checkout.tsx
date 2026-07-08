@@ -109,15 +109,22 @@ export default function CheckoutPage() {
 
       if (error || !order) throw error;
 
-      await supabase.from("order_items").insert(
+      const { error: itemsError } = await supabase.from("order_items").insert(
         items.map((item) => ({
           order_id: order.id,
-          menu_item_id: item.drinkId,
+          drink_id: item.drinkId,
           drink_name: item.drinkName,
           quantity: item.quantity,
           unit_price: item.price,
+          subtotal: item.price * item.quantity,
         }))
       );
+
+      if (itemsError) {
+        // Roll back the order so we don't leave an empty ghost order in the kitchen queue
+        await supabase.from("orders").delete().eq("id", order.id);
+        throw itemsError;
+      }
 
       clearCart();
       setSuccess(true);
