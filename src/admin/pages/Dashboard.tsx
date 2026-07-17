@@ -102,7 +102,7 @@ export default function Dashboard() {
 
   const fetchAll = async () => {
     const [ordersRes, drinksRes, customersRes, expensesRes, recentRes, investorsRes, deletedRes] = await Promise.all([
-      supabase.from('orders').select('id, total_amount, status, created_at, source, discount_amount').is('deleted_at', null),
+      supabase.from('orders').select('id, total_amount, status, created_at, source, discount_amount, is_paid').is('deleted_at', null),
       supabase.from('drinks').select('id', { count: 'exact' }),
       supabase.from('profiles').select('id', { count: 'exact' }),
       supabase.from('expenses').select('*').order('date', { ascending: false }),
@@ -112,9 +112,15 @@ export default function Dashboard() {
     ])
 
     const orders = ordersRes.data || []
-    const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.status))
+    const completedOrders = orders.filter(o =>
+      ['delivered', 'completed'].includes(o.status) ||
+      (o.is_paid === true && o.source === 'pos')
+    )
     const todayOrders = orders.filter(o => o.created_at?.startsWith(today))
-    const todayCompleted = todayOrders.filter(o => ['delivered', 'completed'].includes(o.status))
+    const todayCompleted = todayOrders.filter(o =>
+      ['delivered', 'completed'].includes(o.status) ||
+      (o.is_paid === true && o.source === 'pos')
+    )
     const posOrders = orders.filter(o => o.source === 'pos')
     const totalDiscounts = orders.reduce((s, o) => s + (o.discount_amount || 0), 0)
 
