@@ -28,7 +28,7 @@ export default function Kitchen() {
       .select('*, order_items(id, quantity, drink_name, drink_id, unit_price)')
       .in('status', ['confirmed', 'preparing', 'ready'])
       .is('deleted_at', null)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
 
     const resolved = (data || []).map(order => ({
       ...order,
